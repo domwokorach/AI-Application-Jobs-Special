@@ -1,2 +1,6 @@
-import { ApplicationRoutePage } from "@/features/applications/components/application-route-page";
-export default function DeclarationPage() { return <ApplicationRoutePage step="declaration" />; }
+import { redirect } from "next/navigation";
+
+export default async function DeclarationPage({ params }: PageProps<"/applications/[applicationId]/declaration">) {
+  const { applicationId } = await params;
+  redirect(`/applications/${applicationId}/review`);
+}

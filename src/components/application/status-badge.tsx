@@ -6,6 +6,8 @@ type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
 
 const statusConfig: Record<ApplicationStatus, { label: string; variant: BadgeVariant }> = {
   draft: { label: "Draft", variant: "secondary" },
+  "ready-to-submit": { label: "Ready to submit", variant: "secondary" },
+  submitting: { label: "Submitting", variant: "info" },
   submitted: { label: "Submitted", variant: "info" },
   "under-review": { label: "Under review", variant: "info" },
   interview: { label: "Interview", variant: "warning" },

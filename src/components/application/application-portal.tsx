@@ -2,20 +2,29 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, FileText, GraduationCap, Info, MapPin, Paperclip, Plus, ShieldCheck, Trash2, UploadCloud } from "lucide-react";
-import { useRef, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { useFieldArray, useForm, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
 import { applicationSchema, type ApplicationFormValues } from "@/features/applications/schemas/application.schema";
+import { resendConfirmationEmailAction, submitApplicationAction } from "@/features/applications/actions/submit-application.actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,8 +35,23 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { FormSection } from "@/components/forms/form-section";
+import { FormError } from "@/components/forms/form-error";
+import { StatusBadge } from "@/components/application/status-badge";
+import type { ApplicationStatus } from "@/types";
 
 type Values = ApplicationFormValues;
+
+const APPLICATION_ID = "demo-application";
+const JOB_TITLE = "Customer Experience Associate";
+const JOB_LOCATION = "London · Hybrid · Full time";
+
+type SubmissionResult = { reference: string; submittedAt: string; email: string; emailDelivered: boolean };
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return email;
+  return `${local[0]}${"•".repeat(Math.max(local.length - 1, 4))}@${domain}`;
+}
 
 function Field({ children, label, hint, error, required = false }: { children: React.ReactNode; label: string; hint?: string; error?: string; required?: boolean }) {
   const id = label.toLowerCase().replaceAll(/[^a-z0-9]/g, "-");
@@ -54,28 +78,61 @@ function FileUpload() {
   </CardContent></Card>;
 }
 
-function RepeatableCards({ control, kind }: { control: ReturnType<typeof useForm<Values>>["control"]; kind: "work" | "education" | "references" }) {
+function RepeatableCards({ control, register, kind }: { control: ReturnType<typeof useForm<Values>>["control"]; register: ReturnType<typeof useForm<Values>>["register"]; kind: "work" | "education" | "references" }) {
   const { fields, append, remove } = useFieldArray({ control, name: kind });
-  const config = kind === "work" ? { title: "Work experience", fields: ["Job title", "Employer"], icon: BriefcaseBusiness, empty: { title: "", employer: "" } } : kind === "education" ? { title: "Education and qualifications", fields: ["Institution", "Qualification"], icon: GraduationCap, empty: { institution: "", qualification: "" } } : { title: "References", fields: ["Reference name", "Email address"], icon: CircleUserRound, empty: { name: "", email: "" } };
+  const config = kind === "work"
+    ? { title: "Work experience", icon: BriefcaseBusiness, empty: { title: "", employer: "" }, inputs: [{ label: "Job title", name: "title" }, { label: "Employer", name: "employer" }] }
+    : kind === "education"
+    ? { title: "Education and qualifications", icon: GraduationCap, empty: { institution: "", qualification: "" }, inputs: [{ label: "Institution", name: "institution" }, { label: "Qualification", name: "qualification" }] }
+    : { title: "References", icon: CircleUserRound, empty: { name: "", email: "" }, inputs: [{ label: "Reference name", name: "name" }, { label: "Email address", name: "email" }] };
   const Icon = config.icon;
-  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-emerald-700" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.fields.map((field) => <Field key={field} label={field}><Input placeholder={`Enter ${field.toLowerCase()}`} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty)} type="button" variant="outline"><Plus />Add another</Button></div>;
+  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-emerald-700" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field key={field.name} label={field.label}><Input placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
 }
 
-function Dashboard({ onContinue }: { onContinue: () => void }) {
+function Dashboard({ onContinue, status, submission }: { onContinue: () => void; status: ApplicationStatus; submission?: SubmissionResult }) {
+  const submitted = status === "submitted";
   return <div className="min-h-screen bg-stone-50"><header className="border-b bg-white"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-emerald-950 font-sans text-sm text-lime-200">N</span>northstar</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">In progress</Badge><CardTitle className="mt-3 font-serif text-2xl">Customer Experience Associate</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />London · Hybrid · Full time</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator /><div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Application progress</p><div className="mt-2 flex items-center gap-3"><Progress className="w-48" value={36} /><span className="text-sm font-semibold">5 of 14 sections</span></div></div><p className="text-xs text-muted-foreground">Last saved today, 14:32</p></div><div className="mt-6 flex flex-wrap gap-3"><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></div></CardContent></Card>
+    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{JOB_TITLE}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{JOB_LOCATION}</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator />
+      {submitted && submission ? (
+        <div className="mt-5 space-y-1 text-sm">
+          <p className="flex items-center gap-1.5 font-medium text-emerald-700"><CheckCircle2 className="size-4" />Application submitted</p>
+          <p className="text-muted-foreground">Reference: <span className="font-mono font-medium text-foreground">{submission.reference}</span></p>
+          <p className="text-muted-foreground">Submitted: {format(new Date(submission.submittedAt), "d MMMM yyyy")}</p>
+        </div>
+      ) : (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Application progress</p><div className="mt-2 flex items-center gap-3"><Progress className="w-48" value={36} /><span className="text-sm font-semibold">5 of {applicationSteps.length} sections</span></div></div><p className="text-xs text-muted-foreground">Last saved today, 14:32</p></div>
+      )}
+      <div className="mt-6 flex flex-wrap gap-3">{submitted ? <Button onClick={onContinue} variant="outline">View Application</Button> : <><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></>}</div></CardContent></Card>
       <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-emerald-100 font-semibold text-emerald-800">AM</span><div><p className="text-sm font-semibold">Alex Morgan</p><p className="text-xs text-muted-foreground">alex.morgan@example.com</p></div></div><Separator /><p className="text-sm text-muted-foreground">Your profile is 80% complete.</p><Button className="w-full" variant="outline">Manage profile</Button></CardContent></Card></div>
-      <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-emerald-700" /><div><p className="text-sm font-medium">Personal details saved</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
+      <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-emerald-700" /><div><p className="text-sm font-medium">{submitted ? "Application submitted" : "Personal details saved"}</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
 }
 
 export function ApplicationPortal({ initialScreen = "dashboard", initialStep = 1 }: { initialScreen?: "dashboard" | "form"; initialStep?: number }) {
   const [screen, setScreen] = useState<"dashboard" | "form">(initialScreen);
   const [current, setCurrent] = useState(initialStep);
-  const [submitted, setSubmitted] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState(false);
-  const form = useForm<Values>({ resolver: zodResolver(applicationSchema), defaultValues: { fullName: "", email: "", mobile: "", address: "", postcode: "", adjustments: undefined, adjustmentDetails: "", declaration: false, work: [{ title: "", employer: "" }], education: [{ institution: "", qualification: "" }], references: [{ name: "", email: "" }] } });
+  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>("draft");
+  const [submission, setSubmission] = useState<SubmissionResult>();
+  const form = useForm<Values>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      mobile: "",
+      address: "",
+      postcode: "",
+      adjustments: undefined,
+      adjustmentDetails: "",
+      declarationAccurate: false,
+      declarationEditRestriction: false,
+      work: [{ title: "", employer: "" }],
+      education: [{ institution: "", qualification: "" }],
+      references: [{ name: "", email: "" }],
+    },
+  });
   const step = applicationSteps[current];
   const errors = form.formState.errors;
+  const isLastStep = current === applicationSteps.length - 1;
+
   async function next() {
     if (current === 1) {
       const valid = await form.trigger(["fullName", "email", "mobile", "address", "postcode"]);
@@ -84,31 +141,90 @@ export function ApplicationPortal({ initialScreen = "dashboard", initialStep = 1
         return;
       }
     }
-    if (current === applicationSteps.length - 1) {
-      form.handleSubmit(() => setConfirmDialog(true), () => toast.error("Please complete the required declaration."))();
-      return;
-    }
     setCurrent((value) => value + 1);
     toast.success("Changes saved");
   }
-  if (screen === "dashboard") return <Dashboard onContinue={() => setScreen("form")} />;
-  if (submitted) return <Confirmation onDashboard={() => setScreen("dashboard")} />;
-  return <ApplicationShell current={current} onSelect={setCurrent} steps={applicationSteps}><main className="mx-auto max-w-3xl px-5 pb-28 pt-10 sm:px-8 sm:pt-16"><p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Step {current + 1} of {applicationSteps.length}</p>
-    <FormSection title={step.label} optional={step.optional} description={descriptionFor(step.id)}>
-      <StepContents current={current} control={form.control} errors={errors} form={form} onEdit={setCurrent} />
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex min-h-18 items-center justify-between border-t bg-white/95 px-5 py-3 backdrop-blur md:static md:mt-10 md:border-b md:bg-transparent md:px-0"><Button disabled={current === 0} onClick={() => setCurrent((value) => value - 1)} variant="ghost"><ArrowLeft />Previous</Button><Button onClick={next}>{current === applicationSteps.length - 1 ? "Submit application" : "Save and continue"}{current < applicationSteps.length - 1 && <ArrowRight />}</Button></nav>
-    </FormSection></main><Dialog onOpenChange={setConfirmDialog} open={confirmDialog}><DialogContent><DialogHeader><DialogTitle>Submit your application?</DialogTitle><DialogDescription>Once submitted, your application will be sent to the recruitment team for review.</DialogDescription></DialogHeader><DialogFooter><Button onClick={() => setConfirmDialog(false)} variant="outline">Continue editing</Button><Button onClick={() => { setConfirmDialog(false); setSubmitted(true); }}>Submit application</Button></DialogFooter></DialogContent></Dialog></ApplicationShell>;
+
+  if (screen === "dashboard") {
+    return <Dashboard onContinue={() => { setScreen("form"); setCurrent(applicationSteps.length - 1); }} status={applicationStatus} submission={submission} />;
+  }
+  if (applicationStatus === "submitted" && submission) {
+    return (
+      <Confirmation
+        applicationId={APPLICATION_ID}
+        onDashboard={() => setScreen("dashboard")}
+        onViewApplication={() => setCurrent(applicationSteps.length - 1)}
+        onSubmission={setSubmission}
+        submission={submission}
+      />
+    );
+  }
+  return (
+    <ApplicationShell current={current} onSelect={setCurrent} steps={applicationSteps}>
+      <main className="mx-auto max-w-3xl px-5 pb-28 pt-10 sm:px-8 sm:pt-16">
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Step {current + 1} of {applicationSteps.length}</p>
+        <FormSection title={step.label} optional={step.optional} description={descriptionFor(step.id)}>
+          <StepContents
+            applicationId={APPLICATION_ID}
+            applicationStatus={applicationStatus}
+            control={form.control}
+            current={current}
+            errors={errors}
+            form={form}
+            onEdit={setCurrent}
+            onStatusChange={setApplicationStatus}
+            onSubmitted={setSubmission}
+          />
+          <nav className="fixed inset-x-0 bottom-0 z-10 flex min-h-18 items-center justify-between border-t bg-white/95 px-5 py-3 backdrop-blur md:static md:mt-10 md:border-b md:bg-transparent md:px-0">
+            <Button disabled={current === 0} onClick={() => setCurrent((value) => value - 1)} variant="ghost"><ArrowLeft />Previous</Button>
+            {!isLastStep && <Button onClick={next}>Save and continue<ArrowRight /></Button>}
+          </nav>
+        </FormSection>
+      </main>
+    </ApplicationShell>
+  );
 }
 
-function descriptionFor(id: string) { return ({ account: "Create an account to securely save your application and return whenever you need.", "personal-details": "Please provide the details we need to contact you about your application.", "job-preferences": "Tell us which role and working arrangements are the best fit for you.", "about-you": "Share a short introduction and why this opportunity interests you.", cv: "Upload your CV in PDF, DOC or DOCX format. You can still complete this application without one.", experience: "Add your employment history. If you have no previous experience, leave this section blank.", skills: "Add skills, languages, licences and professional qualifications relevant to this role.", education: "Tell us about your education and qualifications.", "right-to-work": "We need to confirm your eligibility to work in the UK.", adjustments: "Tell us how we can make the recruitment process accessible and supportive for you.", "equality-diversity": "Help us understand whether our recruitment is fair and inclusive.", references: "Add people who can comment on your work or character.", declaration: "Please read and confirm the following statement.", review: "Review your application before submitting it." } as Record<string, string>)[id]; }
+function descriptionFor(id: string) { return ({ account: "Create an account to securely save your application and return whenever you need.", "personal-details": "Please provide the details we need to contact you about your application.", "job-preferences": "Tell us which role and working arrangements are the best fit for you.", "about-you": "Share a short introduction and why this opportunity interests you.", cv: "Upload your CV in PDF, DOC or DOCX format. You can still complete this application without one.", experience: "Add your employment history. If you have no previous experience, leave this section blank.", skills: "Add skills, languages, licences and professional qualifications relevant to this role.", education: "Tell us about your education and qualifications.", "right-to-work": "We need to confirm your eligibility to work in the UK.", adjustments: "Tell us how we can make the recruitment process accessible and supportive for you.", "equality-diversity": "Help us understand whether our recruitment is fair and inclusive.", references: "Add people who can comment on your work or character.", review: "Review your application, then confirm the declaration to submit it." } as Record<string, string>)[id]; }
 
-function StepContents({ current, control, errors, form, onEdit }: { current: number; control: ReturnType<typeof useForm<Values>>["control"]; errors: ReturnType<typeof useForm<Values>>["formState"]["errors"]; form: ReturnType<typeof useForm<Values>>; onEdit: (index: number) => void }) {
+function StepContents({
+  current,
+  control,
+  errors,
+  form,
+  onEdit,
+  applicationId,
+  applicationStatus,
+  onStatusChange,
+  onSubmitted,
+}: {
+  current: number;
+  control: ReturnType<typeof useForm<Values>>["control"];
+  errors: ReturnType<typeof useForm<Values>>["formState"]["errors"];
+  form: ReturnType<typeof useForm<Values>>;
+  onEdit: (index: number) => void;
+  applicationId: string;
+  applicationStatus: ApplicationStatus;
+  onStatusChange: (status: ApplicationStatus) => void;
+  onSubmitted: (result: SubmissionResult) => void;
+}) {
   if (current === 4) return <FileUpload />;
-  if ([5, 7, 11].includes(current)) return <RepeatableCards control={control} kind={current === 5 ? "work" : current === 7 ? "education" : "references"} />;
+  if ([5, 7, 11].includes(current)) return <RepeatableCards control={control} kind={current === 5 ? "work" : current === 7 ? "education" : "references"} register={form.register} />;
   if (current === 9) return <Adjustments form={form} />;
   if (current === 10) return <Equality />;
-  if (current === 13) return <Review onEdit={onEdit} />;
-  if (current === 12) return <div className="space-y-5"><Alert><ShieldCheck /><AlertTitle>Your declaration</AlertTitle><AlertDescription>I confirm that the information I have provided is accurate and complete. I understand how Northstar will process my personal information.</AlertDescription></Alert><div className="flex gap-3"><Checkbox id="declaration" onCheckedChange={(checked) => form.setValue("declaration", checked === true, { shouldValidate: true })} /><Label className="leading-5" htmlFor="declaration">I agree to the declaration and have read the Privacy Notice.</Label></div>{errors.declaration && <p className="text-sm text-destructive" role="alert">{errors.declaration.message}</p>}</div>;
+  if (current === applicationSteps.length - 1) {
+    return (
+      <ReviewAndSubmit
+        applicationId={applicationId}
+        applicationStatus={applicationStatus}
+        errors={errors}
+        form={form}
+        onEdit={onEdit}
+        onStatusChange={onStatusChange}
+        onSubmitted={onSubmitted}
+      />
+    );
+  }
   if (current === 8) return <div className="grid gap-6"><Field label="Do you currently have the right to work in the UK?" required><RadioGroup defaultValue="yes"><div className="flex items-center gap-2"><RadioGroupItem id="right-yes" value="yes" /><Label htmlFor="right-yes">Yes, without restrictions</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-visa" value="visa" /><Label htmlFor="right-visa">Yes, with a current visa</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-no" value="no" /><Label htmlFor="right-no">No</Label></div></RadioGroup></Field><Field label="Will you require visa sponsorship?" required><Select><SelectTrigger><SelectValue placeholder="Choose an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent></Select></Field></div>;
   if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><DatePickerField label="Date of birth" /><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
   if (current === 0) return <div className="grid gap-5"><Field label="Email address" required><Input placeholder="you@example.com" type="email" /></Field><Field label="Create password" hint="Use at least 12 characters." required><Input type="password" /></Field><Field label="Confirm password" required><Input type="password" /></Field></div>;
@@ -125,6 +241,306 @@ function Adjustments({ form }: { form: ReturnType<typeof useForm<Values>> }) {
 
 function Equality() { return <div className="space-y-6"><Alert className="border-indigo-200 bg-indigo-50"><Info /><AlertTitle>Optional equality and diversity monitoring</AlertTitle><AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription></Alert><div className="grid gap-5 sm:grid-cols-2">{["Age group", "Sex", "Gender identity", "Race or ethnic group", "Religion or belief", "Sexual orientation"].map((label) => <Field key={label} label={label}><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="prefer-not">Prefer not to say</SelectItem><SelectItem value="option-1">Option 1</SelectItem><SelectItem value="option-2">Option 2</SelectItem></SelectContent></Select></Field>)}</div></div>; }
 
-function Review({ onEdit }: { onEdit: (index: number) => void }) { const sections = [{ label: "Personal details", step: 1 }, { label: "Job preferences", step: 2 }, { label: "Work experience", step: 5 }, { label: "Skills", step: 6 }, { label: "Education", step: 7 }, { label: "Right to work", step: 8 }, { label: "Reasonable adjustments", step: 9 }, { label: "References", step: 11 }]; return <div className="space-y-4"><Alert><Info /><AlertTitle>Almost ready to submit</AlertTitle><AlertDescription>Complete your declaration before submitting. Optional equality monitoring is not included in this review.</AlertDescription></Alert>{sections.map((section) => <Card key={section.label}><CardContent className="flex items-center justify-between p-5"><div><p className="font-medium">{section.label}</p><p className="mt-1 text-sm text-muted-foreground">Information saved</p></div><Button onClick={() => onEdit(section.step)} variant="outline">Edit</Button></CardContent></Card>)}</div>; }
+function ReviewAndSubmit({
+  form,
+  errors,
+  onEdit,
+  applicationId,
+  applicationStatus,
+  onStatusChange,
+  onSubmitted,
+}: {
+  form: ReturnType<typeof useForm<Values>>;
+  errors: ReturnType<typeof useForm<Values>>["formState"]["errors"];
+  onEdit: (index: number) => void;
+  applicationId: string;
+  applicationStatus: ApplicationStatus;
+  onStatusChange: (status: ApplicationStatus) => void;
+  onSubmitted: (result: SubmissionResult) => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
+  const [isPending, startTransition] = useTransition();
+  const accurate = form.watch("declarationAccurate");
+  const editRestriction = form.watch("declarationEditRestriction");
+  const isSubmitted = applicationStatus === "submitted";
 
-function Confirmation({ onDashboard }: { onDashboard: () => void }) { return <main className="grid min-h-screen place-items-center bg-stone-50 p-5"><Card className="w-full max-w-xl"><CardHeader className="items-center text-center"><span className="grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-800"><CheckCircle2 className="size-7" /></span><CardTitle className="mt-4 font-serif text-3xl">Application submitted</CardTitle><CardDescription>Thank you for applying to Northstar.</CardDescription></CardHeader><CardContent className="space-y-5"><div className="grid gap-4 rounded-lg bg-stone-50 p-5 text-sm sm:grid-cols-2"><div><p className="text-muted-foreground">Application reference</p><p className="mt-1 font-mono font-semibold">NS-2026-48291</p></div><div><p className="text-muted-foreground">Submitted</p><p className="mt-1 font-semibold">7 September 2026</p></div><div className="sm:col-span-2"><p className="text-muted-foreground">Role</p><p className="mt-1 font-semibold">Customer Experience Associate</p></div></div><Alert><Info /><AlertTitle>What happens next</AlertTitle><AlertDescription>Our recruitment team will review your application. If your experience is a match, we will contact you about the next stage.</AlertDescription></Alert><Button className="w-full" onClick={onDashboard}>Return to dashboard</Button></CardContent></Card></main>; }
+  const sections = [
+    { label: "Personal details", step: 1 },
+    { label: "Job preferences", step: 2 },
+    { label: "Work experience", step: 5 },
+    { label: "Skills", step: 6 },
+    { label: "Education", step: 7 },
+    { label: "Right to work", step: 8 },
+    { label: "Reasonable adjustments", step: 9 },
+    { label: "References", step: 11 },
+  ];
+
+  function handleSubmitClick() {
+    form.handleSubmit(
+      () => {
+        onStatusChange("ready-to-submit");
+        setConfirmOpen(true);
+      },
+      () => toast.error("Please complete all required sections before submitting."),
+    )();
+  }
+
+  function handleConfirmSubmit() {
+    if (isPending) return;
+    setSubmitError(undefined);
+    onStatusChange("submitting");
+    startTransition(async () => {
+      const result = await submitApplicationAction(applicationId, form.getValues());
+      if (!result.success) {
+        setSubmitError(result.message);
+        onStatusChange("ready-to-submit");
+        return;
+      }
+      onStatusChange("submitted");
+      setConfirmOpen(false);
+      onSubmitted({ reference: result.reference, submittedAt: result.submittedAt, email: result.email, emailDelivered: result.emailDelivered });
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <Info />
+        <AlertTitle>Almost ready to submit</AlertTitle>
+        <AlertDescription>Complete your declaration below before submitting. Optional equality monitoring is not included in this review.</AlertDescription>
+      </Alert>
+      {sections.map((section) => (
+        <Card key={section.label}>
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="font-medium">{section.label}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Information saved</p>
+            </div>
+            <Button disabled={isSubmitted} onClick={() => onEdit(section.step)} variant="outline">
+              Edit
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+
+      {isSubmitted ? (
+        <Alert className="border-success/40 bg-success/10">
+          <CheckCircle2 />
+          <AlertTitle>Application submitted</AlertTitle>
+          <AlertDescription>This application has already been submitted and can no longer be edited.</AlertDescription>
+        </Alert>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Declaration</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Checkbox
+                checked={accurate}
+                id="declaration-accurate"
+                onCheckedChange={(checked) => form.setValue("declarationAccurate", checked === true, { shouldValidate: true })}
+              />
+              <Label className="font-normal leading-5" htmlFor="declaration-accurate">
+                I confirm that the information provided in this application is complete and accurate.
+              </Label>
+            </div>
+            <FormError message={errors.declarationAccurate?.message} />
+            <div className="flex gap-3">
+              <Checkbox
+                checked={editRestriction}
+                id="declaration-edit-restriction"
+                onCheckedChange={(checked) => form.setValue("declarationEditRestriction", checked === true, { shouldValidate: true })}
+              />
+              <Label className="font-normal leading-5" htmlFor="declaration-edit-restriction">
+                I understand that after submitting my application, I may not be able to edit some information.
+              </Label>
+            </div>
+            <FormError message={errors.declarationEditRestriction?.message} />
+
+            <Button className="w-full sm:w-auto" disabled={!accurate || !editRestriction} onClick={handleSubmitClick} type="button">
+              Submit Application
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setConfirmOpen(false);
+            setSubmitError(undefined);
+            onStatusChange("ready-to-submit");
+          }
+        }}
+        open={confirmOpen}
+      >
+        <AlertDialogContent>
+          {submitError ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Unable to submit application</AlertDialogTitle>
+                <AlertDialogDescription>
+                  We couldn&apos;t submit your application. Your information has been saved. Please try again.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <p className="text-sm font-medium text-destructive" role="alert">{submitError}</p>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isPending}>Close</AlertDialogCancel>
+                <AlertDialogAction
+                  aria-busy={isPending}
+                  disabled={isPending}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleConfirmSubmit();
+                  }}
+                >
+                  {isPending ? "Submitting…" : "Try Again"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm submit application</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to submit your application for {JOB_TITLE}? Please check that all of your information is
+                  correct before submitting. After submission, you may not be able to make changes to this application.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isPending}>Go Back</AlertDialogCancel>
+                <AlertDialogAction
+                  aria-busy={isPending}
+                  disabled={isPending}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleConfirmSubmit();
+                  }}
+                >
+                  {isPending ? "Submitting…" : "Confirm Submit"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function Confirmation({
+  applicationId,
+  onDashboard,
+  onViewApplication,
+  onSubmission,
+  submission,
+}: {
+  applicationId: string;
+  onDashboard: () => void;
+  onViewApplication: () => void;
+  onSubmission: (result: SubmissionResult) => void;
+  submission: SubmissionResult;
+}) {
+  const [isResending, startResend] = useTransition();
+  const { reference, submittedAt, email, emailDelivered } = submission;
+
+  function handleResend() {
+    startResend(async () => {
+      const result = await resendConfirmationEmailAction(applicationId, { email, reference });
+      onSubmission({ ...submission, emailDelivered: result.success });
+      if (result.success) toast.success("Confirmation email sent");
+      else toast.error("We couldn't send the confirmation email. Please try again.");
+    });
+  }
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-stone-50 p-5">
+      <Card className="w-full max-w-xl">
+        <CardHeader className="items-center text-center">
+          <span className="grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+            <CheckCircle2 className="size-7" />
+          </span>
+          <CardTitle className="mt-4 font-serif text-3xl">Thank you!</CardTitle>
+          <CardDescription>Your application has been successfully submitted.</CardDescription>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We&apos;ve received your application and sent a confirmation email to your email address.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please check your inbox for your application confirmation and reference number.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <Card className="bg-stone-50">
+            <CardHeader>
+              <CardTitle className="text-base">Application submitted</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-muted-foreground">Job</p>
+                <p className="mt-1 font-semibold">{JOB_TITLE}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Location</p>
+                <p className="mt-1 font-semibold">{JOB_LOCATION.split(" · ")[0]}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Application reference</p>
+                <p className="mt-1 font-mono font-semibold">{reference}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Submitted</p>
+                <p className="mt-1 font-semibold">{format(new Date(submittedAt), "d MMMM yyyy")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Status</p>
+                <p className="mt-1"><StatusBadge status="submitted" /></p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {emailDelivered ? (
+            <Alert className="border-emerald-200 bg-emerald-50">
+              <Mail />
+              <AlertTitle>Confirmation email sent</AlertTitle>
+              <AlertDescription>
+                We&apos;ve sent confirmation that we received your application to:
+                <p className="mt-1 font-mono font-medium text-foreground">{maskEmail(email)}</p>
+                <p className="mt-1">Please keep this email for your records.</p>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle />
+              <AlertTitle>Application received</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>Your application was submitted successfully, but we couldn&apos;t send your confirmation email.</p>
+                <p>
+                  Your application reference is: <span className="font-mono font-medium text-foreground">{reference}</span>
+                </p>
+                <p>Please keep this reference for your records.</p>
+                <Button disabled={isResending} onClick={handleResend} size="sm" variant="outline">
+                  {isResending ? "Sending…" : "Resend confirmation email"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Alert>
+            <Info />
+            <AlertTitle>What happens next?</AlertTitle>
+            <AlertDescription>
+              The recruitment team will review your application. We&apos;ll contact you using the contact details you
+              provided if there is an update or if we need any additional information.
+            </AlertDescription>
+          </Alert>
+          <div className="grid gap-3">
+            <Button onClick={onViewApplication} variant="outline">View Submitted Application</Button>
+            <Button onClick={onDashboard}>Return to Dashboard</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

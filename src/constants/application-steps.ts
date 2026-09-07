@@ -13,6 +13,5 @@ export const applicationSteps: ApplicationStep[] = [
   { id: "adjustments", label: "Reasonable adjustments", optional: true },
   { id: "equality-diversity", label: "Equality & diversity", optional: true },
   { id: "references", label: "References" },
-  { id: "declaration", label: "Declaration" },
   { id: "review", label: "Review & submit" },
 ];
