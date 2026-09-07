@@ -2,14 +2,15 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, Download, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
 import { applicationSchema, type ApplicationFormValues } from "@/features/applications/schemas/application.schema";
-import { resendConfirmationEmailAction, submitApplicationAction } from "@/features/applications/actions/submit-application.actions";
+import { regeneratePdfAction, resendConfirmationEmailAction, submitApplicationAction } from "@/features/applications/actions/submit-application.actions";
+import type { DocumentStatus } from "@/features/applications/services/applications.service";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +51,12 @@ type SubmissionResult = {
   jobTitle: string;
   location?: string;
   emailDelivered: boolean;
+  pdfStatus: DocumentStatus;
 };
+
+function pdfFilename(reference: string): string {
+  return `application-${reference.replace(/[^A-Za-z0-9-]/g, "")}.pdf`;
+}
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -94,7 +100,17 @@ function RepeatableCards({ control, register, kind }: { control: ReturnType<type
   return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-emerald-700" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field key={field.name} label={field.label}><Input placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
 }
 
-function Dashboard({ onContinue, status, submission }: { onContinue: () => void; status: ApplicationStatus; submission?: SubmissionResult }) {
+function Dashboard({
+  applicationId,
+  onContinue,
+  status,
+  submission,
+}: {
+  applicationId: string;
+  onContinue: () => void;
+  status: ApplicationStatus;
+  submission?: SubmissionResult;
+}) {
   const submitted = status === "submitted";
   return <div className="min-h-screen bg-stone-50"><header className="border-b bg-white"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-emerald-950 font-sans text-sm text-lime-200">N</span>northstar</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
     <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator />
@@ -107,7 +123,7 @@ function Dashboard({ onContinue, status, submission }: { onContinue: () => void;
       ) : (
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Application progress</p><div className="mt-2 flex items-center gap-3"><Progress className="w-48" value={36} /><span className="text-sm font-semibold">5 of {applicationSteps.length} sections</span></div></div><p className="text-xs text-muted-foreground">Last saved today, 14:32</p></div>
       )}
-      <div className="mt-6 flex flex-wrap gap-3">{submitted ? <Button onClick={onContinue} variant="outline">View Application</Button> : <><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></>}</div></CardContent></Card>
+      <div className="mt-6 flex flex-wrap gap-3">{submitted ? <><Button onClick={onContinue} variant="outline">View Application</Button><Button asChild variant="outline"><a download={submission ? pdfFilename(submission.reference) : undefined} href={`/applications/${applicationId}/pdf`}><Download />Download PDF</a></Button></> : <><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></>}</div></CardContent></Card>
       <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-emerald-100 font-semibold text-emerald-800">AM</span><div><p className="text-sm font-semibold">Alex Morgan</p><p className="text-xs text-muted-foreground">alex.morgan@example.com</p></div></div><Separator /><p className="text-sm text-muted-foreground">Your profile is 80% complete.</p><Button className="w-full" variant="outline">Manage profile</Button></CardContent></Card></div>
       <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-emerald-700" /><div><p className="text-sm font-medium">{submitted ? "Application submitted" : "Personal details saved"}</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
 }
@@ -163,7 +179,14 @@ export function ApplicationPortal({
   }
 
   if (screen === "dashboard") {
-    return <Dashboard onContinue={() => { setScreen("form"); setCurrent(applicationSteps.length - 1); }} status={applicationStatus} submission={submission} />;
+    return (
+      <Dashboard
+        applicationId={APPLICATION_ID}
+        onContinue={() => { setScreen("form"); setCurrent(applicationSteps.length - 1); }}
+        status={applicationStatus}
+        submission={submission}
+      />
+    );
   }
   if (applicationStatus === "submitted" && submission) {
     return (
@@ -322,6 +345,7 @@ function ReviewAndSubmit({
         jobTitle: result.jobTitle,
         location: result.location,
         emailDelivered: result.emailDelivered,
+        pdfStatus: result.pdfStatus,
       });
     });
   }
@@ -428,10 +452,16 @@ function ReviewAndSubmit({
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirm submit application</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to submit your application for {form.getValues("role") || "this position"}? Please check that all of your information is
-                  correct before submitting. After submission, you may not be able to make changes to this application.
+                  Are you sure you want to submit your application? Please check that all of your information is correct
+                  before submitting. After submission, you may not be able to make changes.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {isPending && (
+                <div aria-live="polite" className="rounded-md bg-muted px-4 py-3 text-sm">
+                  <p className="font-medium">Submitting application…</p>
+                  <p className="mt-1 text-muted-foreground">Please do not close this page.</p>
+                </div>
+              )}
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={isPending}>Go Back</AlertDialogCancel>
                 <AlertDialogAction
@@ -466,7 +496,41 @@ function Confirmation({
 }) {
   const router = useRouter();
   const [isResending, startResend] = useTransition();
-  const { reference, submittedAt, email, emailDelivered, jobTitle, location } = submission;
+  const [isRetryingPdf, startPdfRetry] = useTransition();
+  const [downloadStarted, setDownloadStarted] = useState(false);
+  const autoDownloadTriggered = useRef(false);
+  const { reference, submittedAt, email, emailDelivered, jobTitle, location, pdfStatus } = submission;
+  const pdfUrl = `/applications/${applicationId}/pdf`;
+  const filename = pdfFilename(reference);
+
+  const statusMessage = downloadStarted
+    ? "Your PDF download has started."
+    : pdfStatus === "READY"
+      ? "Your application PDF is ready."
+      : pdfStatus === "FAILED"
+        ? "We couldn't prepare your application PDF."
+        : pdfStatus === "GENERATING"
+          ? "Preparing your application PDF."
+          : "Application submitted.";
+
+  function triggerDownload() {
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setDownloadStarted(true);
+  }
+
+  useEffect(() => {
+    if (pdfStatus === "READY" && !autoDownloadTriggered.current) {
+      autoDownloadTriggered.current = true;
+      triggerDownload();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdfStatus]);
 
   function handleResend() {
     startResend(async () => {
@@ -477,8 +541,22 @@ function Confirmation({
     });
   }
 
+  function handleRetryPdf() {
+    startPdfRetry(async () => {
+      const result = await regeneratePdfAction(applicationId);
+      onSubmission({ ...submission, pdfStatus: result.status });
+      if (result.status === "READY") {
+        toast.success("Your application PDF is ready");
+        triggerDownload();
+      } else {
+        toast.error("We still couldn't prepare your PDF. Please try again.");
+      }
+    });
+  }
+
   return (
     <main className="grid min-h-screen place-items-center bg-stone-50 p-5">
+      <div aria-live="polite" className="sr-only" role="status">{statusMessage}</div>
       <Card className="w-full max-w-xl">
         <CardHeader className="items-center text-center">
           <span className="grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-800">
@@ -486,9 +564,6 @@ function Confirmation({
           </span>
           <CardTitle className="mt-4 font-serif text-3xl">Thank you!</CardTitle>
           <CardDescription>Your application has been successfully submitted. We&apos;ve received your application.</CardDescription>
-          <p className="text-sm text-muted-foreground">
-            Please check your inbox for your application confirmation and reference number.
-          </p>
         </CardHeader>
         <CardContent className="space-y-5">
           <Card className="bg-stone-50">
@@ -518,6 +593,39 @@ function Confirmation({
               </div>
             </CardContent>
           </Card>
+
+          {pdfStatus === "FAILED" ? (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle />
+              <AlertTitle>We couldn&apos;t prepare your PDF confirmation</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>Your application is still safely submitted. Only your PDF confirmation failed to generate.</p>
+                <p>
+                  Your application reference is: <span className="font-mono font-medium text-foreground">{reference}</span>
+                </p>
+                <Button disabled={isRetryingPdf} onClick={handleRetryPdf} size="sm" variant="outline">
+                  {isRetryingPdf ? "Trying again…" : "Try Download Again"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="border-emerald-200 bg-emerald-50">
+              <FileText />
+              <AlertTitle>Your application confirmation PDF is ready</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>Please keep it for your records.</p>
+                {downloadStarted && <p className="text-xs">Your PDF download has started.</p>}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button asChild className="w-full sm:w-auto">
+                    <a download={filename} href={pdfUrl}>
+                      <Download />
+                      Download Application PDF
+                    </a>
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {emailDelivered ? (
             <Alert className="border-emerald-200 bg-emerald-50">
@@ -554,7 +662,7 @@ function Confirmation({
               provided if there is an update or if we need any additional information.
             </AlertDescription>
           </Alert>
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:flex sm:flex-wrap">
             <Button onClick={() => router.push(`/applications/${applicationId}/submitted`)} variant="outline">View Submitted Application</Button>
             <Button onClick={() => { onDashboard(); router.push("/dashboard"); }}>Return to Dashboard</Button>
           </div>
