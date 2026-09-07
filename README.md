@@ -1,4 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Northstar Careers
+
+A Next.js App Router job-application portal using TypeScript, Tailwind CSS, shadcn/ui, React Hook Form, Zod, and Lucide.
+
+## Architecture
+
+- `src/app/` owns routes, layouts, error/loading boundaries, and route handlers.
+- `src/components/ui/` contains only shadcn-generated primitives.
+- `src/components/` contains reusable presentation components for layouts, forms, and application flow.
+- `src/features/` owns domain logic, schemas, server actions, services, feature types, and feature utilities.
+- `src/types/` contains shared domain models; `src/constants/` contains shared static data.
+
+Sensitive reasonable-adjustment and equality-monitoring data must remain separate from normal candidate assessment data. Authentication, authorisation, document storage, auditing, and persistence are intentionally represented behind trusted server boundaries and require provider configuration before production use.
+
+## Route groups
+
+- `(auth)`: login, registration, and password recovery
+- `(portal)`: dashboard, jobs, applications, and profile
+- `applications/[applicationId]`: individual form-step routes, review, and submission
 
 ## Getting Started
 
@@ -34,3 +52,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# AI-Application-Jobs-Special
