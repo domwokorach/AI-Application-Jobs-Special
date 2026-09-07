@@ -33,10 +33,12 @@ export function SensitiveDocumentGate({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Candidate information</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>This page contains confidential candidate information.</p>
-              <p>Please handle this information securely and in accordance with your organisation&apos;s privacy and data-protection policies.</p>
-              <p>Do not share screenshots, photographs or copies with unauthorised people.</p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>This page contains confidential candidate information.</p>
+                <p>Please handle this information securely and in accordance with your organisation&apos;s privacy and data-protection policies.</p>
+                <p>Do not share screenshots, photographs or copies with unauthorised people.</p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

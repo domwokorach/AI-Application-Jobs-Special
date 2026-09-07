@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { FormSection } from "@/components/forms/form-section";
 import { FormError } from "@/components/forms/form-error";
 import { StatusBadge } from "@/components/application/status-badge";
+import { CandidatePrivacyNotice } from "@/components/privacy/candidate-privacy-notice";
 import type { ApplicationStatus } from "@/types";
 
 type Values = ApplicationFormValues;
@@ -605,6 +606,8 @@ function Confirmation({
               </div>
             </CardContent>
           </Card>
+
+          <CandidatePrivacyNotice />
 
           {pdfStatus === "FAILED" ? (
             <Alert className="border-amber-200 bg-amber-50">
