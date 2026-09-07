@@ -21,12 +21,12 @@ export function ApplicationStepList({
           <li key={step.id}>
             <button
               aria-current={active ? "step" : undefined}
-              className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70 ${active ? "bg-primary-foreground/12 font-semibold text-primary-foreground" : "text-primary-foreground/75 hover:bg-primary-foreground/8 hover:text-primary-foreground"}`}
+              className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2F2F2] ${active ? "bg-[#F2F2F2] font-semibold text-[#2B2B2B]" : "text-primary-foreground/75 hover:bg-[#F2F2F2] hover:text-[#2B2B2B]"}`}
               onClick={() => onSelect(index)}
               type="button"
             >
               <span
-                className={`grid size-5 shrink-0 place-items-center rounded-full border ${complete ? "border-success bg-success text-success-foreground" : active ? "border-primary-foreground bg-primary-foreground text-primary" : "border-primary-foreground/40 text-primary-foreground"}`}
+                className={`grid size-5 shrink-0 place-items-center rounded-full border ${complete ? "border-success bg-success text-success-foreground" : active ? "border-[#F2F2F2] bg-[#F2F2F2] text-[#2B2B2B]" : "border-[#F2F2F2] text-primary-foreground"}`}
               >
                 <Icon aria-hidden="true" className="size-3.5" />
               </span>
@@ -57,12 +57,12 @@ export function ApplicationSidebar({
   className?: string;
 }) {
   return (
-    <aside className={`w-(--sidebar-width) flex-col border-r border-primary-foreground/20 bg-[#2B2B2B] px-6 py-7 text-primary-foreground ${className ?? ""}`}>
+    <aside className={`w-(--sidebar-width) flex-col border-r border-[#F2F2F2] bg-[#2B2B2B] px-6 py-7 text-primary-foreground ${className ?? ""}`}>
       <a className="flex items-center gap-2 font-serif text-2xl font-semibold tracking-tight" href="#">
-        <span className="grid size-8 place-items-center rounded-full border border-primary-foreground/75 font-sans text-xs">AI</span>
+        <span className="grid size-8 place-items-center rounded-full border border-[#F2F2F2] font-sans text-xs">AI</span>
         AI Application Fast Specialist
       </a>
-      <div className="mt-12 border-b border-white/15 pb-6">
+      <div className="mt-12 border-b border-[#F2F2F2] pb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">Your application</p>
         <h2 className="mt-2 font-serif text-xl leading-tight">{jobTitle}</h2>
         <p className="mt-2 text-sm text-primary-foreground/70">{jobMeta}</p>

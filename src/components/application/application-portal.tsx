@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, Download, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Controller, useFieldArray, useForm, useWatch, type Path } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
 import { applicationSchema, type ApplicationFormValues } from "@/features/applications/schemas/application.schema";
@@ -55,6 +55,21 @@ type SubmissionResult = {
   pdfStatus: DocumentStatus;
 };
 
+const validationStepOrder: Array<{ field: keyof Values; step: number }> = [
+  { field: "fullName", step: 1 },
+  { field: "email", step: 1 },
+  { field: "mobile", step: 1 },
+  { field: "dateOfBirth", step: 1 },
+  { field: "address", step: 1 },
+  { field: "postcode", step: 1 },
+  { field: "role", step: 2 },
+  { field: "work", step: 5 },
+  { field: "education", step: 7 },
+  { field: "references", step: 11 },
+  { field: "declarationAccurate", step: 12 },
+  { field: "declarationEditRestriction", step: 12 },
+];
+
 function pdfFilename(reference: string): string {
   return `application-${reference.replace(/[^A-Za-z0-9-]/g, "")}.pdf`;
 }
@@ -67,7 +82,7 @@ function maskEmail(email: string): string {
 
 function Field({ children, label, hint, error, required = false }: { children: React.ReactNode; label: string; hint?: string; error?: string; required?: boolean }) {
   const id = label.toLowerCase().replaceAll(/[^a-z0-9]/g, "-");
-  return <div className="space-y-2"><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}{error && <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert"><AlertCircle className="size-3.5" />{error}</p>}</div>;
+  return <div className={`space-y-2 ${error ? "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=select-trigger]]:border-destructive" : ""}`}><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}{error && <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert"><AlertCircle className="size-3.5" />{error}</p>}</div>;
 }
 
 function DatePickerField({ label }: { label: string }) {
@@ -90,7 +105,7 @@ function FileUpload() {
   </CardContent></Card>;
 }
 
-function RepeatableCards({ control, register, kind }: { control: ReturnType<typeof useForm<Values>>["control"]; register: ReturnType<typeof useForm<Values>>["register"]; kind: "work" | "education" | "references" }) {
+function RepeatableCards({ control, errors, register, kind }: { control: ReturnType<typeof useForm<Values>>["control"]; errors: FieldErrors<Values>; register: ReturnType<typeof useForm<Values>>["register"]; kind: "work" | "education" | "references" }) {
   const { fields, append, remove } = useFieldArray({ control, name: kind });
   const config = kind === "work"
     ? { title: "Work experience", icon: BriefcaseBusiness, empty: { title: "", employer: "" }, inputs: [{ label: "Job title", name: "title" }, { label: "Employer", name: "employer" }] }
@@ -98,7 +113,17 @@ function RepeatableCards({ control, register, kind }: { control: ReturnType<type
     ? { title: "Education and qualifications", icon: GraduationCap, empty: { institution: "", qualification: "" }, inputs: [{ label: "Institution", name: "institution" }, { label: "Qualification", name: "qualification" }] }
     : { title: "References", icon: CircleUserRound, empty: { name: "", email: "" }, inputs: [{ label: "Reference name", name: "name" }, { label: "Email address", name: "email" }] };
   const Icon = config.icon;
-  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-foreground" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field key={field.name} label={field.label}><Input placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
+  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-foreground" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field error={getRepeatableFieldError(errors, kind, index, field.name)} key={field.name} label={field.label}><Input aria-invalid={Boolean(getRepeatableFieldError(errors, kind, index, field.name))} placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
+}
+
+function getRepeatableFieldError(errors: FieldErrors<Values>, kind: "work" | "education" | "references", index: number, field: string): string | undefined {
+  if (kind === "work") {
+    return field === "title" ? errors.work?.[index]?.title?.message : errors.work?.[index]?.employer?.message;
+  }
+  if (kind === "education") {
+    return field === "institution" ? errors.education?.[index]?.institution?.message : errors.education?.[index]?.qualification?.message;
+  }
+  return field === "name" ? errors.references?.[index]?.name?.message : errors.references?.[index]?.email?.message;
 }
 
 function Dashboard({
@@ -148,6 +173,7 @@ export function ApplicationPortal({
       fullName: "",
       email: "",
       mobile: "",
+      dateOfBirth: "",
       address: "",
       postcode: "",
       role: "",
@@ -156,6 +182,12 @@ export function ApplicationPortal({
       availableFrom: "",
       adjustments: undefined,
       adjustmentDetails: "",
+      ageGroup: "",
+      sex: "",
+      genderIdentity: "",
+      ethnicity: "",
+      religion: "",
+      sexualOrientation: "",
       declarationAccurate: false,
       declarationEditRestriction: false,
       work: [{ title: "", employer: "" }],
@@ -169,7 +201,7 @@ export function ApplicationPortal({
 
   async function next() {
     if (current === 1) {
-      const valid = await form.trigger(["fullName", "email", "mobile", "address", "postcode"]);
+      const valid = await form.trigger(["fullName", "email", "mobile", "dateOfBirth", "address", "postcode"]);
       if (!valid) {
         toast.error("Please correct the highlighted fields.");
         return;
@@ -249,9 +281,9 @@ function StepContents({
   onSubmitted: (result: SubmissionResult) => void;
 }) {
   if (current === 4) return <FileUpload />;
-  if ([5, 7, 11].includes(current)) return <RepeatableCards control={control} kind={current === 5 ? "work" : current === 7 ? "education" : "references"} register={form.register} />;
+  if ([5, 7, 11].includes(current)) return <RepeatableCards control={control} errors={errors} kind={current === 5 ? "work" : current === 7 ? "education" : "references"} register={form.register} />;
   if (current === 9) return <Adjustments form={form} />;
-  if (current === 10) return <Equality />;
+  if (current === 10) return <Equality form={form} />;
   if (current === applicationSteps.length - 1) {
     return (
       <ReviewAndSubmit
@@ -266,9 +298,9 @@ function StepContents({
     );
   }
   if (current === 8) return <div className="grid gap-6"><Field label="Do you currently have the right to work in the UK?" required><RadioGroup defaultValue="yes"><div className="flex items-center gap-2"><RadioGroupItem id="right-yes" value="yes" /><Label htmlFor="right-yes">Yes, without restrictions</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-visa" value="visa" /><Label htmlFor="right-visa">Yes, with a current visa</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-no" value="no" /><Label htmlFor="right-no">No</Label></div></RadioGroup></Field><Field label="Will you require visa sponsorship?" required><Select><SelectTrigger><SelectValue placeholder="Choose an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent></Select></Field></div>;
-  if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><DatePickerField label="Date of birth" /><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
+  if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><Field label="Date of birth" error={errors.dateOfBirth?.message} hint="You must be 18 years old or over. Enter your date of birth as DD/MM/YY." required><Input autoComplete="bday" inputMode="numeric" maxLength={8} pattern="\d{2}/\d{2}/\d{2}" placeholder="DD/MM/YY" {...form.register("dateOfBirth")} /></Field><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
   if (current === 0) return <div className="grid gap-5"><Field label="Email address" required><Input placeholder="you@example.com" type="email" /></Field><Field label="Create password" hint="Use at least 12 characters." required><Input type="password" /></Field><Field label="Confirm password" required><Input type="password" /></Field></div>;
-  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Job or role you are applying for" required><Controller control={form.control} name="role" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select>} /></Field><Field label="Preferred location"><Controller control={form.control} name="location" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select>} /></Field><Field label="Employment type"><Controller control={form.control} name="employmentType" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select>} /></Field><DatePickerField label="Available start date" /></div>;
+  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field error={errors.role?.message} label="Job or role you are applying for" required><Controller control={form.control} name="role" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger aria-invalid={Boolean(errors.role)}><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select>} /></Field><Field label="Preferred location"><Controller control={form.control} name="location" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select>} /></Field><Field label="Employment type"><Controller control={form.control} name="employmentType" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select>} /></Field><DatePickerField label="Available start date" /></div>;
   if (current === 3) return <div className="space-y-5"><Field label="Personal profile" hint="Up to 500 words"><Textarea placeholder="Tell us a little about yourself and your experience." rows={6} /></Field><Field label="Why are you interested in this role?"><Textarea placeholder="Share why this opportunity appeals to you." rows={5} /></Field></div>;
   return <div className="grid gap-5 sm:grid-cols-2"><Field label="Key skills"><Input placeholder="e.g. Customer service, Excel, teamwork" /></Field><Field label="Languages"><Input placeholder="Include your level of fluency" /></Field><Field label="Driving licence"><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="na">Not applicable</SelectItem></SelectContent></Select></Field><Field label="Professional qualifications"><Input placeholder="Add relevant certificates" /></Field></div>;
 }
@@ -279,7 +311,65 @@ function Adjustments({ form }: { form: ReturnType<typeof useForm<Values>> }) {
   return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-background p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
 }
 
-function Equality() { return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Optional equality and diversity monitoring</AlertTitle><AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription></Alert><div className="grid gap-5 sm:grid-cols-2">{["Age group", "Sex", "Gender identity", "Race or ethnic group", "Religion or belief", "Sexual orientation"].map((label) => <Field key={label} label={label}><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="prefer-not">Prefer not to say</SelectItem><SelectItem value="option-1">Option 1</SelectItem><SelectItem value="option-2">Option 2</SelectItem></SelectContent></Select></Field>)}</div></div>; }
+function Equality({ form }: { form: ReturnType<typeof useForm<Values>> }) {
+  return (
+    <div className="space-y-6">
+      <Alert className="border-border bg-muted">
+        <Info />
+        <AlertTitle>Optional equality and diversity monitoring</AlertTitle>
+        <AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription>
+      </Alert>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field error={form.formState.errors.ageGroup?.message} hint="Optional. Enter a whole number from 18 to 99." label="Age group">
+          <Controller control={form.control} name="ageGroup" render={({ field }) => (
+            <Input
+              inputMode="numeric"
+              max={99}
+              min={18}
+              onChange={field.onChange}
+              placeholder="18–99"
+              step={1}
+              type="number"
+              value={field.value}
+            />
+          )} />
+        </Field>
+        <EqualitySelect form={form} label="Sex" name="sex" options={["Male", "Female", "Intersex", "Other", "Prefer not to say"]} />
+        <EqualitySelect form={form} label="Gender identity" name="genderIdentity" options={["Woman", "Man", "Non-binary", "Another identity", "Prefer not to say"]} />
+        <EqualitySelect form={form} label="Race or ethnicity" name="ethnicity" options={["Asian or Asian British", "Black, African, Caribbean or Black British", "Mixed or multiple ethnic groups", "White", "Another ethnic group", "Prefer not to say"]} />
+        <EqualitySelect form={form} label="Religion or belief" name="religion" options={["No religion or belief", "Buddhist", "Christian", "Hindu", "Jewish", "Muslim", "Sikh", "Another religion or belief", "Prefer not to say"]} />
+        <EqualitySelect form={form} label="Sexual orientation" name="sexualOrientation" options={["Heterosexual or straight", "Gay or lesbian", "Bisexual", "Another sexual orientation", "Prefer not to say"]} />
+      </div>
+    </div>
+  );
+}
+
+function EqualitySelect({
+  form,
+  label,
+  name,
+  options,
+}: {
+  form: ReturnType<typeof useForm<Values>>;
+  label: string;
+  name: "sex" | "genderIdentity" | "ethnicity" | "religion" | "sexualOrientation";
+  options: string[];
+}) {
+  return (
+    <Field label={label}>
+      <Controller control={form.control} name={name} render={({ field }) => (
+        <Select onValueChange={field.onChange} value={field.value}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )} />
+    </Field>
+  );
+}
 
 function ReviewAndSubmit({
   form,
@@ -322,7 +412,11 @@ function ReviewAndSubmit({
         onStatusChange("ready-to-submit");
         setConfirmOpen(true);
       },
-      () => toast.error("Please complete all required sections before submitting."),
+      (invalidFields) => {
+        const firstInvalidStep = validationStepOrder.find(({ field }) => invalidFields[field])?.step;
+        onEdit(firstInvalidStep ?? 1);
+        toast.error("Please complete all required sections before submitting.");
+      },
     )();
   }
 

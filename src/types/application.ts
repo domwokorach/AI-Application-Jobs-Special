@@ -46,7 +46,16 @@ export type Education = {
 
 export type Skill = { id: string; name: string; level?: string };
 export type ReasonableAdjustment = { option: string; details?: string };
-export type EqualityMonitoring = { ageGroup?: string; ethnicity?: string; disability?: string; gender?: string };
+export type EqualityMonitoring = {
+  ageGroup?: string;
+  sex?: string;
+  genderIdentity?: string;
+  ethnicity?: string;
+  religion?: string;
+  sexualOrientation?: string;
+  disability?: string;
+  gender?: string;
+};
 export type Reference = { id: string; name: string; organisation?: string; email: string; telephone?: string };
 export type UploadedDocument = { id: string; fileName: string; contentType: string; size: number; url: string };
 

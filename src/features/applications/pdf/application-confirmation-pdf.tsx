@@ -8,24 +8,24 @@ Font.registerHyphenationCallback((word) => [word]);
 const ORGANISATION_NAME = "Northstar Careers";
 
 const styles = StyleSheet.create({
-  page: { paddingTop: 48, paddingBottom: 56, paddingHorizontal: 48, fontSize: 10.5, color: "#1c1917", fontFamily: "Helvetica" },
-  organisation: { fontSize: 10, color: "#047857", fontFamily: "Helvetica-Bold", marginBottom: 12 },
+  page: { paddingTop: 48, paddingBottom: 56, paddingHorizontal: 48, fontSize: 10.5, color: "#2B2B2B", backgroundColor: "#FFFFFF", fontFamily: "Helvetica" },
+  organisation: { fontSize: 10, color: "#2B2B2B", fontFamily: "Helvetica-Bold", marginBottom: 12 },
   h1: { fontSize: 20, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  subtitle: { fontSize: 11, color: "#047857", marginBottom: 18 },
-  infoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 18, borderWidth: 1, borderColor: "#e7e5e4", borderRadius: 4, padding: 14 },
+  subtitle: { fontSize: 11, color: "#2B2B2B", marginBottom: 18 },
+  infoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 18, borderWidth: 1, borderColor: "#F2F2F2", borderRadius: 4, padding: 14 },
   infoCell: { width: "50%", marginBottom: 10 },
-  infoLabel: { fontSize: 8.5, color: "#78716c", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 2 },
+  infoLabel: { fontSize: 8.5, color: "#2B2B2B", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 2 },
   infoValue: { fontSize: 11, fontFamily: "Helvetica-Bold" },
   paragraph: { marginBottom: 8, lineHeight: 1.5 },
-  sectionTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", marginTop: 18, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#e7e5e4", paddingBottom: 4 },
+  sectionTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", marginTop: 18, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#F2F2F2", paddingBottom: 4 },
   row: { flexDirection: "row", marginBottom: 6 },
-  rowLabel: { width: "35%", color: "#78716c" },
+  rowLabel: { width: "35%", color: "#2B2B2B" },
   rowValue: { width: "65%", fontFamily: "Helvetica-Bold" },
-  entryCard: { marginBottom: 8, padding: 10, borderWidth: 1, borderColor: "#e7e5e4", borderRadius: 4 },
+  entryCard: { marginBottom: 8, padding: 10, borderWidth: 1, borderColor: "#F2F2F2", borderRadius: 4 },
   entryTitle: { fontFamily: "Helvetica-Bold", marginBottom: 2 },
-  entryMeta: { color: "#57534e" },
-  emptyNote: { color: "#78716c", fontStyle: "italic" },
-  footer: { position: "absolute", bottom: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: "#78716c", borderTopWidth: 1, borderTopColor: "#e7e5e4", paddingTop: 8 },
+  entryMeta: { color: "#2B2B2B" },
+  emptyNote: { color: "#2B2B2B", fontStyle: "italic" },
+  footer: { position: "absolute", bottom: 24, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", fontSize: 8.5, color: "#2B2B2B", borderTopWidth: 1, borderTopColor: "#F2F2F2", paddingTop: 8 },
 });
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -84,6 +84,7 @@ export function ApplicationConfirmationPdf({ submission }: ApplicationConfirmati
 
         <Text style={styles.sectionTitle}>Personal Details</Text>
         <DetailRow label="Full name" value={summary.personalDetails.fullName} />
+        <DetailRow label="Date of birth" value={summary.personalDetails.dateOfBirth} />
         <DetailRow label="Email" value={summary.personalDetails.email} />
         <DetailRow label="Mobile" value={summary.personalDetails.mobile} />
         <DetailRow label="Address" value={summary.personalDetails.address} />

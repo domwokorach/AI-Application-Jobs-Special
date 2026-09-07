@@ -22,7 +22,7 @@ export async function saveApplicationStep(
 // Non-sensitive, candidate-facing summary of a submitted application. Reasonable-adjustment and
 // equality-monitoring answers are deliberately excluded — they must never appear in a downloadable receipt.
 export type ApplicationSummary = {
-  personalDetails: { fullName: string; email: string; mobile: string; address: string; postcode: string };
+  personalDetails: { fullName: string; email: string; mobile: string; dateOfBirth: string; address: string; postcode: string };
   jobPreferences: { role: string; location?: string; employmentType?: string; availableFrom?: string };
   workExperience: { title: string; employer: string }[];
   education: { institution: string; qualification: string }[];
@@ -36,6 +36,7 @@ function buildApplicationSummary(data: ApplicationFormValues): ApplicationSummar
       fullName: data.fullName,
       email: data.email,
       mobile: data.mobile,
+      dateOfBirth: data.dateOfBirth,
       address: data.address,
       postcode: data.postcode,
     },

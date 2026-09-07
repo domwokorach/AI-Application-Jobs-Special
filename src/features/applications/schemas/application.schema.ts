@@ -4,6 +4,7 @@ import { adjustmentsSchema } from "./adjustments.schema";
 import { declarationSchema } from "./declaration.schema";
 import { experienceSchema } from "./experience.schema";
 import { educationSchema } from "./education.schema";
+import { equalitySchema } from "./equality.schema";
 import { jobPreferencesSchema } from "./job-preferences.schema";
 import { referencesSchema } from "./references.schema";
 
@@ -18,6 +19,7 @@ export const applicationSchema = personalDetailsSchema
   .extend(declarationSchema.shape)
   .extend(experienceSchema.shape)
   .extend(educationSchema.shape)
+  .extend(equalitySchema.shape)
   .extend(referencesSchema.shape);
 
 export type ApplicationFormValues = z.infer<typeof applicationSchema>;

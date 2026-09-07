@@ -26,10 +26,10 @@ export function MobileApplicationNav({
           </Button>
         </SheetTrigger>
         <SheetContent className="w-[min(88vw,360px)] border-0 bg-[#2B2B2B] p-0 text-primary-foreground" side="left">
-          <SheetHeader className="flex-row items-center justify-between border-b border-primary-foreground/15 px-6 py-6 text-left">
+          <SheetHeader className="flex-row items-center justify-between border-b border-[#F2F2F2] px-6 py-6 text-left">
             <SheetTitle className="font-serif text-xl text-primary-foreground">Your application</SheetTitle>
             <SheetClose asChild>
-              <Button aria-label="Close navigation" className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" size="icon" variant="ghost">
+              <Button aria-label="Close navigation" className="text-primary-foreground hover:bg-[#F2F2F2] hover:text-[#2B2B2B]" size="icon" variant="ghost">
                 <X />
               </Button>
             </SheetClose>
