@@ -70,6 +70,25 @@ const validationStepOrder: Array<{ field: keyof Values; step: number }> = [
   { field: "declarationEditRestriction", step: 12 },
 ];
 
+const jobRoleOptions = [
+  "Software Engineer", "Data Analyst", "Lead Software Engineer", "Senior Software Engineer",
+  "Front-End Developer", "Back-End Developer", "Full-Stack Developer", "DevOps Engineer",
+  "Cyber Security Specialist", "Project Manager", "Product Manager", "Business Analyst", "Legal",
+  "Finance", "Human Resources", "Marketing", "Customer Service", "Operations", "Other",
+];
+const locationOptions = [
+  "London", "Manchester", "Birmingham", "Leeds", "Liverpool", "Bristol", "Sheffield", "Newcastle",
+  "Nottingham", "Cardiff", "Edinburgh", "Glasgow", "Belfast", "Remote — UK", "Hybrid — UK", "Other UK Location",
+];
+const employerOptions = [
+  "Lloyds Banking Group", "Sky", "BBC", "ITV", "Barclays", "HSBC", "NatWest Group", "BT Group",
+  "Vodafone", "Amazon UK", "Google UK", "Microsoft UK", "Other",
+];
+const employmentTypeOptions = [
+  "Permanent", "Full-time", "Part-time", "Fixed-term Contract", "Temporary", "Contract",
+  "Internship", "Apprenticeship", "Graduate Scheme", "Other",
+];
+
 function pdfFilename(reference: string): string {
   return `application-${reference.replace(/[^A-Za-z0-9-]/g, "")}.pdf`;
 }
@@ -82,12 +101,63 @@ function maskEmail(email: string): string {
 
 function Field({ children, label, hint, error, required = false }: { children: React.ReactNode; label: string; hint?: string; error?: string; required?: boolean }) {
   const id = label.toLowerCase().replaceAll(/[^a-z0-9]/g, "-");
-  return <div className={`space-y-2 ${error ? "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=select-trigger]]:border-destructive" : ""}`}><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}{error && <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert"><AlertCircle className="size-3.5" />{error}</p>}</div>;
+  return <div className={`space-y-2 ${error ? "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=button]]:border-destructive [&_[data-slot=select-trigger]]:border-destructive" : ""}`}><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}{error && <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert"><AlertCircle className="size-3.5" />{error}</p>}</div>;
 }
 
 function DatePickerField({ label }: { label: string }) {
   const [date, setDate] = useState<Date>();
   return <Field label={label}><Popover><PopoverTrigger asChild><Button className="w-full justify-start font-normal" variant="outline"><CalendarIcon className="mr-2 size-4" />{date ? format(date, "PPP") : "Choose a date"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" onSelect={setDate} selected={date} /></PopoverContent></Popover></Field>;
+}
+
+function SearchableSelect({
+  ariaLabel,
+  onValueChange,
+  options,
+  placeholder,
+  value,
+}: {
+  ariaLabel: string;
+  onValueChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+  value?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const filteredOptions = options.filter((option) => option.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+
+  return (
+    <Popover onOpenChange={setOpen} open={open}>
+      <PopoverTrigger asChild>
+        <Button aria-expanded={open} aria-haspopup="listbox" aria-label={ariaLabel} className="w-full justify-between font-normal" type="button" variant="outline">
+          <span className="truncate">{value || placeholder}</span>
+          <ChevronDown />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] p-2">
+        <Input aria-label={`Search ${ariaLabel.toLowerCase()}`} autoFocus onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${ariaLabel.toLowerCase()}`} value={query} />
+        <div className="mt-2 max-h-56 overflow-y-auto" role="listbox">
+          {filteredOptions.length > 0 ? filteredOptions.map((option) => (
+            <Button
+              aria-selected={value === option}
+              className="w-full justify-start font-normal"
+              key={option}
+              onClick={() => {
+                onValueChange(option);
+                setOpen(false);
+                setQuery("");
+              }}
+              role="option"
+              type="button"
+              variant="ghost"
+            >
+              {option}
+            </Button>
+          )) : <p className="px-3 py-2 text-sm text-muted-foreground">No matching options.</p>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function FileUpload() {
@@ -178,6 +248,7 @@ export function ApplicationPortal({
       postcode: "",
       role: "",
       location: "",
+      preferredEmployer: "",
       employmentType: undefined,
       availableFrom: "",
       adjustments: undefined,
@@ -300,7 +371,21 @@ function StepContents({
   if (current === 8) return <div className="grid gap-6"><Field label="Do you currently have the right to work in the UK?" required><RadioGroup defaultValue="yes"><div className="flex items-center gap-2"><RadioGroupItem id="right-yes" value="yes" /><Label htmlFor="right-yes">Yes, without restrictions</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-visa" value="visa" /><Label htmlFor="right-visa">Yes, with a current visa</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-no" value="no" /><Label htmlFor="right-no">No</Label></div></RadioGroup></Field><Field label="Will you require visa sponsorship?" required><Select><SelectTrigger><SelectValue placeholder="Choose an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent></Select></Field></div>;
   if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><Field label="Date of birth" error={errors.dateOfBirth?.message} hint="You must be 18 years old or over. Enter your date of birth as DD/MM/YY." required><Input autoComplete="bday" inputMode="numeric" maxLength={8} pattern="\d{2}/\d{2}/\d{2}" placeholder="DD/MM/YY" {...form.register("dateOfBirth")} /></Field><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
   if (current === 0) return <div className="grid gap-5"><Field label="Email address" required><Input placeholder="you@example.com" type="email" /></Field><Field label="Create password" hint="Use at least 12 characters." required><Input type="password" /></Field><Field label="Confirm password" required><Input type="password" /></Field></div>;
-  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field error={errors.role?.message} label="Job or role you are applying for" required><Controller control={form.control} name="role" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger aria-invalid={Boolean(errors.role)}><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select>} /></Field><Field label="Preferred location"><Controller control={form.control} name="location" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select>} /></Field><Field label="Employment type"><Controller control={form.control} name="employmentType" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select>} /></Field><DatePickerField label="Available start date" /></div>;
+  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2">
+    <Field error={errors.role?.message} label="Job or role you are applying for" required>
+      <Controller control={form.control} name="role" render={({ field }) => <SearchableSelect ariaLabel="Job or role you are applying for" onValueChange={field.onChange} options={jobRoleOptions} placeholder="Select a role" value={field.value} />} />
+    </Field>
+    <Field label="Preferred location">
+      <Controller control={form.control} name="location" render={({ field }) => <SearchableSelect ariaLabel="Preferred location" onValueChange={field.onChange} options={locationOptions} placeholder="Select a UK location" value={field.value} />} />
+    </Field>
+    <Field label="Preferred employer / company">
+      <Controller control={form.control} name="preferredEmployer" render={({ field }) => <SearchableSelect ariaLabel="Preferred employer or company" onValueChange={field.onChange} options={employerOptions} placeholder="Select an employer" value={field.value} />} />
+    </Field>
+    <Field label="Employment type">
+      <Controller control={form.control} name="employmentType" render={({ field }) => <SearchableSelect ariaLabel="Employment type" onValueChange={field.onChange} options={employmentTypeOptions} placeholder="Select employment type" value={field.value} />} />
+    </Field>
+    <DatePickerField label="Available start date" />
+  </div>;
   if (current === 3) return <div className="space-y-5"><Field label="Personal profile" hint="Up to 500 words"><Textarea placeholder="Tell us a little about yourself and your experience." rows={6} /></Field><Field label="Why are you interested in this role?"><Textarea placeholder="Share why this opportunity appeals to you." rows={5} /></Field></div>;
   return <div className="grid gap-5 sm:grid-cols-2"><Field label="Key skills"><Input placeholder="e.g. Customer service, Excel, teamwork" /></Field><Field label="Languages"><Input placeholder="Include your level of fluency" /></Field><Field label="Driving licence"><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="na">Not applicable</SelectItem></SelectContent></Select></Field><Field label="Professional qualifications"><Input placeholder="Add relevant certificates" /></Field></div>;
 }

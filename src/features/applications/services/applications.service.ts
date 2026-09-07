@@ -23,7 +23,7 @@ export async function saveApplicationStep(
 // equality-monitoring answers are deliberately excluded — they must never appear in a downloadable receipt.
 export type ApplicationSummary = {
   personalDetails: { fullName: string; email: string; mobile: string; dateOfBirth: string; address: string; postcode: string };
-  jobPreferences: { role: string; location?: string; employmentType?: string; availableFrom?: string };
+  jobPreferences: { role: string; location?: string; preferredEmployer?: string; employmentType?: string; availableFrom?: string };
   workExperience: { title: string; employer: string }[];
   education: { institution: string; qualification: string }[];
   references: { name: string; email: string }[];
@@ -43,6 +43,7 @@ function buildApplicationSummary(data: ApplicationFormValues): ApplicationSummar
     jobPreferences: {
       role: data.role,
       location: data.location,
+      preferredEmployer: data.preferredEmployer,
       employmentType: data.employmentType,
       availableFrom: data.availableFrom,
     },

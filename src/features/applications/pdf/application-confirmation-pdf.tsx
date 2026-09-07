@@ -93,6 +93,7 @@ export function ApplicationConfirmationPdf({ submission }: ApplicationConfirmati
         <Text style={styles.sectionTitle}>Job Preferences</Text>
         <DetailRow label="Role" value={summary.jobPreferences.role} />
         <DetailRow label="Location" value={summary.jobPreferences.location} />
+        <DetailRow label="Preferred employer / company" value={summary.jobPreferences.preferredEmployer} />
         <DetailRow label="Employment type" value={summary.jobPreferences.employmentType} />
         <DetailRow label="Available from" value={summary.jobPreferences.availableFrom} />
 
