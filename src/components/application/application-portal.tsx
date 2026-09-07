@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useFieldArray, useForm, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
@@ -42,10 +43,14 @@ import type { ApplicationStatus } from "@/types";
 type Values = ApplicationFormValues;
 
 const APPLICATION_ID = "demo-application";
-const JOB_TITLE = "Customer Experience Associate";
-const JOB_LOCATION = "London · Hybrid · Full time";
-
-type SubmissionResult = { reference: string; submittedAt: string; email: string; emailDelivered: boolean };
+type SubmissionResult = {
+  reference: string;
+  submittedAt: string;
+  email: string;
+  jobTitle: string;
+  location?: string;
+  emailDelivered: boolean;
+};
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -92,7 +97,7 @@ function RepeatableCards({ control, register, kind }: { control: ReturnType<type
 function Dashboard({ onContinue, status, submission }: { onContinue: () => void; status: ApplicationStatus; submission?: SubmissionResult }) {
   const submitted = status === "submitted";
   return <div className="min-h-screen bg-stone-50"><header className="border-b bg-white"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-emerald-950 font-sans text-sm text-lime-200">N</span>northstar</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{JOB_TITLE}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{JOB_LOCATION}</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator />
+    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator />
       {submitted && submission ? (
         <div className="mt-5 space-y-1 text-sm">
           <p className="flex items-center gap-1.5 font-medium text-emerald-700"><CheckCircle2 className="size-4" />Application submitted</p>
@@ -107,11 +112,19 @@ function Dashboard({ onContinue, status, submission }: { onContinue: () => void;
       <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-emerald-700" /><div><p className="text-sm font-medium">{submitted ? "Application submitted" : "Personal details saved"}</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
 }
 
-export function ApplicationPortal({ initialScreen = "dashboard", initialStep = 1 }: { initialScreen?: "dashboard" | "form"; initialStep?: number }) {
+export function ApplicationPortal({
+  initialScreen = "dashboard",
+  initialStep = 1,
+  initialSubmission,
+}: {
+  initialScreen?: "dashboard" | "form";
+  initialStep?: number;
+  initialSubmission?: SubmissionResult;
+}) {
   const [screen, setScreen] = useState<"dashboard" | "form">(initialScreen);
   const [current, setCurrent] = useState(initialStep);
-  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>("draft");
-  const [submission, setSubmission] = useState<SubmissionResult>();
+  const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>(initialSubmission ? "submitted" : "draft");
+  const [submission, setSubmission] = useState<SubmissionResult | undefined>(initialSubmission);
   const form = useForm<Values>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
@@ -120,6 +133,10 @@ export function ApplicationPortal({ initialScreen = "dashboard", initialStep = 1
       mobile: "",
       address: "",
       postcode: "",
+      role: "",
+      location: "",
+      employmentType: undefined,
+      availableFrom: "",
       adjustments: undefined,
       adjustmentDetails: "",
       declarationAccurate: false,
@@ -153,7 +170,6 @@ export function ApplicationPortal({ initialScreen = "dashboard", initialStep = 1
       <Confirmation
         applicationId={APPLICATION_ID}
         onDashboard={() => setScreen("dashboard")}
-        onViewApplication={() => setCurrent(applicationSteps.length - 1)}
         onSubmission={setSubmission}
         submission={submission}
       />
@@ -228,7 +244,7 @@ function StepContents({
   if (current === 8) return <div className="grid gap-6"><Field label="Do you currently have the right to work in the UK?" required><RadioGroup defaultValue="yes"><div className="flex items-center gap-2"><RadioGroupItem id="right-yes" value="yes" /><Label htmlFor="right-yes">Yes, without restrictions</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-visa" value="visa" /><Label htmlFor="right-visa">Yes, with a current visa</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-no" value="no" /><Label htmlFor="right-no">No</Label></div></RadioGroup></Field><Field label="Will you require visa sponsorship?" required><Select><SelectTrigger><SelectValue placeholder="Choose an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent></Select></Field></div>;
   if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><DatePickerField label="Date of birth" /><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
   if (current === 0) return <div className="grid gap-5"><Field label="Email address" required><Input placeholder="you@example.com" type="email" /></Field><Field label="Create password" hint="Use at least 12 characters." required><Input type="password" /></Field><Field label="Confirm password" required><Input type="password" /></Field></div>;
-  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Job or role you are applying for" required><Select><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="customer-experience">Customer Experience Associate</SelectItem><SelectItem value="team-lead">Customer Experience Team Lead</SelectItem></SelectContent></Select></Field><Field label="Preferred location"><Select><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="london">London</SelectItem><SelectItem value="remote">Remote</SelectItem></SelectContent></Select></Field><Field label="Employment type"><Select><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select></Field><DatePickerField label="Available start date" /></div>;
+  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Job or role you are applying for" required><Select onValueChange={(value) => form.setValue("role", value, { shouldValidate: true })} value={form.watch("role")}><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select></Field><Field label="Preferred location"><Select onValueChange={(value) => form.setValue("location", value)} value={form.watch("location")}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select></Field><Field label="Employment type"><Select onValueChange={(value) => form.setValue("employmentType", value as Values["employmentType"])} value={form.watch("employmentType")}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select></Field><DatePickerField label="Available start date" /></div>;
   if (current === 3) return <div className="space-y-5"><Field label="Personal profile" hint="Up to 500 words"><Textarea placeholder="Tell us a little about yourself and your experience." rows={6} /></Field><Field label="Why are you interested in this role?"><Textarea placeholder="Share why this opportunity appeals to you." rows={5} /></Field></div>;
   return <div className="grid gap-5 sm:grid-cols-2"><Field label="Key skills"><Input placeholder="e.g. Customer service, Excel, teamwork" /></Field><Field label="Languages"><Input placeholder="Include your level of fluency" /></Field><Field label="Driving licence"><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="na">Not applicable</SelectItem></SelectContent></Select></Field><Field label="Professional qualifications"><Input placeholder="Add relevant certificates" /></Field></div>;
 }
@@ -299,7 +315,14 @@ function ReviewAndSubmit({
       }
       onStatusChange("submitted");
       setConfirmOpen(false);
-      onSubmitted({ reference: result.reference, submittedAt: result.submittedAt, email: result.email, emailDelivered: result.emailDelivered });
+      onSubmitted({
+        reference: result.reference,
+        submittedAt: result.submittedAt,
+        email: result.email,
+        jobTitle: result.jobTitle,
+        location: result.location,
+        emailDelivered: result.emailDelivered,
+      });
     });
   }
 
@@ -405,7 +428,7 @@ function ReviewAndSubmit({
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirm submit application</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to submit your application for {JOB_TITLE}? Please check that all of your information is
+                  Are you sure you want to submit your application for {form.getValues("role") || "this position"}? Please check that all of your information is
                   correct before submitting. After submission, you may not be able to make changes to this application.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -433,22 +456,21 @@ function ReviewAndSubmit({
 function Confirmation({
   applicationId,
   onDashboard,
-  onViewApplication,
   onSubmission,
   submission,
 }: {
   applicationId: string;
   onDashboard: () => void;
-  onViewApplication: () => void;
   onSubmission: (result: SubmissionResult) => void;
   submission: SubmissionResult;
 }) {
+  const router = useRouter();
   const [isResending, startResend] = useTransition();
-  const { reference, submittedAt, email, emailDelivered } = submission;
+  const { reference, submittedAt, email, emailDelivered, jobTitle, location } = submission;
 
   function handleResend() {
     startResend(async () => {
-      const result = await resendConfirmationEmailAction(applicationId, { email, reference });
+      const result = await resendConfirmationEmailAction(applicationId, { email, jobTitle, reference });
       onSubmission({ ...submission, emailDelivered: result.success });
       if (result.success) toast.success("Confirmation email sent");
       else toast.error("We couldn't send the confirmation email. Please try again.");
@@ -463,10 +485,7 @@ function Confirmation({
             <CheckCircle2 className="size-7" />
           </span>
           <CardTitle className="mt-4 font-serif text-3xl">Thank you!</CardTitle>
-          <CardDescription>Your application has been successfully submitted.</CardDescription>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We&apos;ve received your application and sent a confirmation email to your email address.
-          </p>
+          <CardDescription>Your application has been successfully submitted. We&apos;ve received your application.</CardDescription>
           <p className="text-sm text-muted-foreground">
             Please check your inbox for your application confirmation and reference number.
           </p>
@@ -479,11 +498,11 @@ function Confirmation({
             <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-muted-foreground">Job</p>
-                <p className="mt-1 font-semibold">{JOB_TITLE}</p>
+                <p className="mt-1 font-semibold">{jobTitle}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Location</p>
-                <p className="mt-1 font-semibold">{JOB_LOCATION.split(" · ")[0]}</p>
+                <p className="mt-1 font-semibold">{location || "Not specified"}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Application reference</p>
@@ -536,8 +555,8 @@ function Confirmation({
             </AlertDescription>
           </Alert>
           <div className="grid gap-3">
-            <Button onClick={onViewApplication} variant="outline">View Submitted Application</Button>
-            <Button onClick={onDashboard}>Return to Dashboard</Button>
+            <Button onClick={() => router.push(`/applications/${applicationId}/submitted`)} variant="outline">View Submitted Application</Button>
+            <Button onClick={() => { onDashboard(); router.push("/dashboard"); }}>Return to Dashboard</Button>
           </div>
         </CardContent>
       </Card>

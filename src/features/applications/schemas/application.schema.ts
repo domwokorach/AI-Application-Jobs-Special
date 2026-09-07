@@ -4,6 +4,7 @@ import { adjustmentsSchema } from "./adjustments.schema";
 import { declarationSchema } from "./declaration.schema";
 import { experienceSchema } from "./experience.schema";
 import { educationSchema } from "./education.schema";
+import { jobPreferencesSchema } from "./job-preferences.schema";
 import { referencesSchema } from "./references.schema";
 
 export { personalDetailsSchema };
@@ -12,6 +13,7 @@ export * from "./right-to-work.schema";
 export * from "./equality.schema";
 
 export const applicationSchema = personalDetailsSchema
+  .extend(jobPreferencesSchema.shape)
   .extend(adjustmentsSchema.shape)
   .extend(declarationSchema.shape)
   .extend(experienceSchema.shape)
