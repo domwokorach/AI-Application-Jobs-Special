@@ -6,17 +6,21 @@
 
 @layer base {
   html {
-    height: 100%;
+    min-height: 100%;
+    background: var(--background);
+    color: var(--foreground);
   }
 
   html,
   body {
+    min-height: 100%;
     max-width: 100vw;
     overflow-x: hidden;
   }
 
   body {
-    min-height: 100%;
+    background: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -91,6 +95,7 @@
 }
 
 :root {
+  color-scheme: light;
   --background: #F2F2F2;
   --foreground: #2B2B2B;
   --card: #FFFFFF;
@@ -139,44 +144,45 @@
 }
 
 .dark {
-  --background: #F2F2F2;
-  --foreground: #2B2B2B;
-  --card: #FFFFFF;
-  --card-foreground: #2B2B2B;
-  --popover: #FFFFFF;
-  --popover-foreground: #2B2B2B;
-  --primary: #2B2B2B;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F2F2F2;
-  --secondary-foreground: #2B2B2B;
-  --muted: #F2F2F2;
-  --muted-foreground: #2B2B2B;
-  --accent: #F2F2F2;
-  --accent-foreground: #2B2B2B;
-  --destructive: #2B2B2B;
-  --destructive-foreground: #FFFFFF;
-  --success: #2B2B2B;
-  --success-foreground: #FFFFFF;
-  --warning: #2B2B2B;
-  --warning-foreground: #FFFFFF;
-  --info: #2B2B2B;
-  --info-foreground: #FFFFFF;
-  --border: #F2F2F2;
-  --input: #2B2B2B;
-  --ring: #2B2B2B;
+  color-scheme: dark;
+  --background: #2B2B2B;
+  --foreground: #FFFFFF;
+  --card: color-mix(in srgb, #FFFFFF 8%, #2B2B2B);
+  --card-foreground: #FFFFFF;
+  --popover: color-mix(in srgb, #FFFFFF 12%, #2B2B2B);
+  --popover-foreground: #FFFFFF;
+  --primary: #F2F2F2;
+  --primary-foreground: #2B2B2B;
+  --secondary: color-mix(in srgb, #FFFFFF 12%, #2B2B2B);
+  --secondary-foreground: #FFFFFF;
+  --muted: color-mix(in srgb, #FFFFFF 14%, #2B2B2B);
+  --muted-foreground: #F2F2F2;
+  --accent: color-mix(in srgb, #FFFFFF 16%, #2B2B2B);
+  --accent-foreground: #FFFFFF;
+  --destructive: #F2F2F2;
+  --destructive-foreground: #2B2B2B;
+  --success: #F2F2F2;
+  --success-foreground: #2B2B2B;
+  --warning: #F2F2F2;
+  --warning-foreground: #2B2B2B;
+  --info: #F2F2F2;
+  --info-foreground: #2B2B2B;
+  --border: color-mix(in srgb, #FFFFFF 22%, #2B2B2B);
+  --input: color-mix(in srgb, #FFFFFF 22%, #2B2B2B);
+  --ring: #F2F2F2;
   --chart-1: #FFFFFF;
-  --chart-2: #2B2B2B;
-  --chart-3: #F2F2F2;
-  --chart-4: #2B2B2B;
-  --chart-5: #F2F2F2;
+  --chart-2: #F2F2F2;
+  --chart-3: color-mix(in srgb, #FFFFFF 18%, #2B2B2B);
+  --chart-4: color-mix(in srgb, #FFFFFF 28%, #2B2B2B);
+  --chart-5: color-mix(in srgb, #FFFFFF 38%, #2B2B2B);
   --sidebar: #2B2B2B;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #F2F2F2;
+  --sidebar-primary: #FFFFFF;
   --sidebar-primary-foreground: #2B2B2B;
-  --sidebar-accent: #F2F2F2;
-  --sidebar-accent-foreground: #2B2B2B;
-  --sidebar-border: #F2F2F2;
-  --sidebar-ring: #F2F2F2;
+  --sidebar-accent: color-mix(in srgb, #FFFFFF 16%, #2B2B2B);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: color-mix(in srgb, #FFFFFF 22%, #2B2B2B);
+  --sidebar-ring: #FFFFFF;
 }
 
 @layer base {
