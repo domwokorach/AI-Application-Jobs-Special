@@ -34,7 +34,7 @@ export function ApplicationShell({
         steps={steps}
       />
 
-      <div className="xl:pl-(--sidebar-width)">
+      <div className="bg-background xl:pl-(--sidebar-width)">
         <header className="sticky top-0 z-20 flex h-(--header-height) items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-8">
           <MobileApplicationNav className="xl:hidden" current={current} onSelect={onSelect} steps={steps} />
           <SaveStatus className="hidden md:flex" />

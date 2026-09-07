@@ -44,7 +44,7 @@ export function LoginForm() {
       <Button disabled={pending} type="submit">
         Sign in
       </Button>
-      <Link className="text-sm text-emerald-800 underline" href="/forgot-password">
+      <Link className="text-sm text-foreground underline" href="/forgot-password">
         Forgot your password?
       </Link>
     </form>

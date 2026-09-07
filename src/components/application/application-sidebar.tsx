@@ -57,7 +57,7 @@ export function ApplicationSidebar({
   className?: string;
 }) {
   return (
-    <aside className={`w-(--sidebar-width) flex-col border-r border-primary-foreground/20 bg-primary px-6 py-7 text-primary-foreground ${className ?? ""}`}>
+    <aside className={`w-(--sidebar-width) flex-col border-r border-primary-foreground/20 bg-[#2B2B2B] px-6 py-7 text-primary-foreground ${className ?? ""}`}>
       <a className="flex items-center gap-2 font-serif text-2xl font-semibold tracking-tight" href="#">
         <span className="grid size-8 place-items-center rounded-full border border-primary-foreground/75 font-sans text-xs">AI</span>
         AI Application Fast Specialist

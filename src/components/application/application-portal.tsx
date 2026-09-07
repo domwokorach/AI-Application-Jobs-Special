@@ -85,7 +85,7 @@ function FileUpload() {
     setFile(next); setProgress(100); toast.success("CV uploaded successfully");
   }
   return <Card className="border-dashed"><CardContent className="p-6">
-    {file ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="grid size-11 place-items-center rounded-md bg-emerald-100 text-emerald-800"><FileText className="size-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{file.name}</p><p className="text-xs text-muted-foreground">{Math.ceil(file.size / 1024)} KB · Upload complete</p><Progress className="mt-2 h-1.5" value={progress} /></div><div className="flex gap-2"><Button onClick={() => input.current?.click()} size="sm" variant="outline">Replace</Button><Button onClick={() => { setFile(undefined); setProgress(0); }} size="icon-sm" variant="ghost" aria-label="Remove uploaded CV"><Trash2 /></Button></div></div> : <div className="grid justify-items-center py-7 text-center" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseFile(event.dataTransfer.files[0]); }}><span className="mb-3 grid size-11 place-items-center rounded-full bg-emerald-100 text-emerald-800"><UploadCloud className="size-5" /></span><h2 className="text-sm font-semibold">Drag and drop your CV here</h2><p className="mt-1 text-xs text-muted-foreground">PDF, DOC or DOCX · Maximum file size 10MB</p><Button className="mt-4" onClick={() => input.current?.click()} type="button" variant="outline"><Paperclip />Browse files</Button></div>}
+    {file ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="grid size-11 place-items-center rounded-md bg-secondary text-secondary-foreground"><FileText className="size-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{file.name}</p><p className="text-xs text-muted-foreground">{Math.ceil(file.size / 1024)} KB · Upload complete</p><Progress className="mt-2 h-1.5" value={progress} /></div><div className="flex gap-2"><Button onClick={() => input.current?.click()} size="sm" variant="outline">Replace</Button><Button onClick={() => { setFile(undefined); setProgress(0); }} size="icon-sm" variant="ghost" aria-label="Remove uploaded CV"><Trash2 /></Button></div></div> : <div className="grid justify-items-center py-7 text-center" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseFile(event.dataTransfer.files[0]); }}><span className="mb-3 grid size-11 place-items-center rounded-full bg-secondary text-secondary-foreground"><UploadCloud className="size-5" /></span><h2 className="text-sm font-semibold">Drag and drop your CV here</h2><p className="mt-1 text-xs text-muted-foreground">PDF, DOC or DOCX · Maximum file size 10MB</p><Button className="mt-4" onClick={() => input.current?.click()} type="button" variant="outline"><Paperclip />Browse files</Button></div>}
     <input className="sr-only" accept=".pdf,.doc,.docx" onChange={(event) => chooseFile(event.target.files?.[0])} ref={input} type="file" />
   </CardContent></Card>;
 }
@@ -98,7 +98,7 @@ function RepeatableCards({ control, register, kind }: { control: ReturnType<type
     ? { title: "Education and qualifications", icon: GraduationCap, empty: { institution: "", qualification: "" }, inputs: [{ label: "Institution", name: "institution" }, { label: "Qualification", name: "qualification" }] }
     : { title: "References", icon: CircleUserRound, empty: { name: "", email: "" }, inputs: [{ label: "Reference name", name: "name" }, { label: "Email address", name: "email" }] };
   const Icon = config.icon;
-  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-emerald-700" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field key={field.name} label={field.label}><Input placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
+  return <div className="space-y-4">{fields.map((item, index) => <Card key={item.id}><CardHeader className="flex-row items-center justify-between space-y-0 pb-4"><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-foreground" />{config.title} {index + 1}</CardTitle>{fields.length > 1 && <Button onClick={() => remove(index)} size="sm" type="button" variant="ghost"><Trash2 />Remove</Button>}</CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">{config.inputs.map((field) => <Field key={field.name} label={field.label}><Input placeholder={`Enter ${field.label.toLowerCase()}`} {...register(`${kind}.${index}.${field.name}` as Path<Values>)} /></Field>)}</CardContent></Card>)}<Button onClick={() => append(config.empty as never)} type="button" variant="outline"><Plus />Add another</Button></div>;
 }
 
 function Dashboard({
@@ -113,11 +113,11 @@ function Dashboard({
   submission?: SubmissionResult;
 }) {
   const submitted = status === "submitted";
-  return <div className="min-h-screen bg-stone-50"><header className="border-b bg-white"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-emerald-950 font-sans text-xs text-lime-200">AI</span>AI Application Fast Specialist</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-emerald-700">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-emerald-700" /></div></CardHeader><CardContent><Separator />
+  return <div className="min-h-screen bg-background"><header className="border-b bg-background"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-primary font-sans text-xs text-primary-foreground">AI</span>AI Application Fast Specialist</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
+    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-foreground">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-foreground" /></div></CardHeader><CardContent><Separator />
       {submitted && submission ? (
         <div className="mt-5 space-y-1 text-sm">
-          <p className="flex items-center gap-1.5 font-medium text-emerald-700"><CheckCircle2 className="size-4" />Application submitted</p>
+          <p className="flex items-center gap-1.5 font-medium text-foreground"><CheckCircle2 className="size-4" />Application submitted</p>
           <p className="text-muted-foreground">Reference: <span className="font-mono font-medium text-foreground">{submission.reference}</span></p>
           <p className="text-muted-foreground">Submitted: {format(new Date(submission.submittedAt), "d MMMM yyyy")}</p>
         </div>
@@ -125,8 +125,8 @@ function Dashboard({
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Application progress</p><div className="mt-2 flex items-center gap-3"><Progress className="w-48" value={36} /><span className="text-sm font-semibold">5 of {applicationSteps.length} sections</span></div></div><p className="text-xs text-muted-foreground">Last saved today, 14:32</p></div>
       )}
       <div className="mt-6 flex flex-wrap gap-3">{submitted ? <><Button onClick={onContinue} variant="outline">View Application</Button><Button asChild variant="outline"><a download={submission ? pdfFilename(submission.reference) : undefined} href={`/applications/${applicationId}/pdf`}><Download />Download PDF</a></Button></> : <><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></>}</div></CardContent></Card>
-      <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-emerald-100 font-semibold text-emerald-800">AM</span><div><p className="text-sm font-semibold">Alex Morgan</p><p className="text-xs text-muted-foreground">alex.morgan@example.com</p></div></div><Separator /><p className="text-sm text-muted-foreground">Your profile is 80% complete.</p><Button className="w-full" variant="outline">Manage profile</Button></CardContent></Card></div>
-      <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-emerald-700" /><div><p className="text-sm font-medium">{submitted ? "Application submitted" : "Personal details saved"}</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
+      <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-secondary font-semibold text-secondary-foreground">AM</span><div><p className="text-sm font-semibold">Alex Morgan</p><p className="text-xs text-muted-foreground">alex.morgan@example.com</p></div></div><Separator /><p className="text-sm text-muted-foreground">Your profile is 80% complete.</p><Button className="w-full" variant="outline">Manage profile</Button></CardContent></Card></div>
+      <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-foreground" /><div><p className="text-sm font-medium">{submitted ? "Application submitted" : "Personal details saved"}</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section></main></div>;
 }
 
 export function ApplicationPortal({
@@ -202,7 +202,7 @@ export function ApplicationPortal({
   return (
     <ApplicationShell current={current} onSelect={setCurrent} steps={applicationSteps}>
       <main className="mx-auto max-w-3xl px-5 pb-28 pt-10 sm:px-8 sm:pt-16">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Step {current + 1} of {applicationSteps.length}</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-foreground">Step {current + 1} of {applicationSteps.length}</p>
         <FormSection title={step.label} optional={step.optional} description={descriptionFor(step.id)}>
           <StepContents
             applicationId={APPLICATION_ID}
@@ -215,7 +215,7 @@ export function ApplicationPortal({
             onStatusChange={setApplicationStatus}
             onSubmitted={setSubmission}
           />
-          <nav className="fixed inset-x-0 bottom-0 z-10 flex min-h-18 items-center justify-between border-t bg-white/95 px-5 py-3 backdrop-blur md:static md:mt-10 md:border-b md:bg-transparent md:px-0">
+          <nav className="fixed inset-x-0 bottom-0 z-10 flex min-h-18 items-center justify-between border-t bg-background/95 px-5 py-3 backdrop-blur md:static md:mt-10 md:border-b md:bg-transparent md:px-0">
             <Button disabled={current === 0} onClick={() => setCurrent((value) => value - 1)} variant="ghost"><ArrowLeft />Previous</Button>
             {!isLastStep && <Button onClick={next}>Save and continue<ArrowRight /></Button>}
           </nav>
@@ -276,10 +276,10 @@ function StepContents({
 function Adjustments({ form }: { form: ReturnType<typeof useForm<Values>> }) {
   const choice = useWatch({ control: form.control, name: "adjustments" });
   const options = ["Visual impairment support", "Deaf or hard-of-hearing support", "Mobility or physical accessibility", "Learning disability support", "Neurodivergence-related adjustment", "Communication support", "Accessible interview location", "Extra assessment time", "Other"];
-  return <div className="space-y-6"><Alert className="border-emerald-200 bg-emerald-50"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-white p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
+  return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-background p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
 }
 
-function Equality() { return <div className="space-y-6"><Alert className="border-indigo-200 bg-indigo-50"><Info /><AlertTitle>Optional equality and diversity monitoring</AlertTitle><AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription></Alert><div className="grid gap-5 sm:grid-cols-2">{["Age group", "Sex", "Gender identity", "Race or ethnic group", "Religion or belief", "Sexual orientation"].map((label) => <Field key={label} label={label}><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="prefer-not">Prefer not to say</SelectItem><SelectItem value="option-1">Option 1</SelectItem><SelectItem value="option-2">Option 2</SelectItem></SelectContent></Select></Field>)}</div></div>; }
+function Equality() { return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Optional equality and diversity monitoring</AlertTitle><AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription></Alert><div className="grid gap-5 sm:grid-cols-2">{["Age group", "Sex", "Gender identity", "Race or ethnic group", "Religion or belief", "Sexual orientation"].map((label) => <Field key={label} label={label}><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="prefer-not">Prefer not to say</SelectItem><SelectItem value="option-1">Option 1</SelectItem><SelectItem value="option-2">Option 2</SelectItem></SelectContent></Select></Field>)}</div></div>; }
 
 function ReviewAndSubmit({
   form,
@@ -568,18 +568,18 @@ function Confirmation({
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-stone-50 p-5">
+    <main className="grid min-h-screen place-items-center bg-background p-5">
       <div aria-live="polite" className="sr-only" role="status">{statusMessage}</div>
       <Card className="w-full max-w-xl">
         <CardHeader className="items-center text-center">
-          <span className="grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+          <span className="grid size-14 place-items-center rounded-full bg-secondary text-secondary-foreground">
             <CheckCircle2 className="size-7" />
           </span>
           <CardTitle className="mt-4 font-serif text-3xl">Thank you!</CardTitle>
           <CardDescription>Your application has been successfully submitted. We&apos;ve received your application.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <Card className="bg-stone-50">
+          <Card className="bg-muted">
             <CardHeader>
               <CardTitle className="text-base">Application submitted</CardTitle>
             </CardHeader>
@@ -610,7 +610,7 @@ function Confirmation({
           <CandidatePrivacyNotice />
 
           {pdfStatus === "FAILED" ? (
-            <Alert className="border-amber-200 bg-amber-50">
+            <Alert className="border-border bg-muted">
               <AlertCircle />
               <AlertTitle>We couldn&apos;t prepare your PDF confirmation</AlertTitle>
               <AlertDescription className="space-y-3">
@@ -624,7 +624,7 @@ function Confirmation({
               </AlertDescription>
             </Alert>
           ) : (
-            <Alert className="border-emerald-200 bg-emerald-50">
+            <Alert className="border-border bg-muted">
               <FileText />
               <AlertTitle>Your application confirmation PDF is ready</AlertTitle>
               <AlertDescription className="space-y-3">
@@ -643,7 +643,7 @@ function Confirmation({
           )}
 
           {emailDelivered ? (
-            <Alert className="border-emerald-200 bg-emerald-50">
+            <Alert className="border-border bg-muted">
               <Mail />
               <AlertTitle>Confirmation email sent</AlertTitle>
               <AlertDescription>
@@ -653,7 +653,7 @@ function Confirmation({
               </AlertDescription>
             </Alert>
           ) : (
-            <Alert className="border-amber-200 bg-amber-50">
+            <Alert className="border-border bg-muted">
               <AlertCircle />
               <AlertTitle>Application received</AlertTitle>
               <AlertDescription className="space-y-3">

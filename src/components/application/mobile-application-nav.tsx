@@ -25,7 +25,7 @@ export function MobileApplicationNav({
             <Menu />
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-[min(88vw,360px)] border-0 bg-primary p-0 text-primary-foreground" side="left">
+        <SheetContent className="w-[min(88vw,360px)] border-0 bg-[#2B2B2B] p-0 text-primary-foreground" side="left">
           <SheetHeader className="flex-row items-center justify-between border-b border-primary-foreground/15 px-6 py-6 text-left">
             <SheetTitle className="font-serif text-xl text-primary-foreground">Your application</SheetTitle>
             <SheetClose asChild>
