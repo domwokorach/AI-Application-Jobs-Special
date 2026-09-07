@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, Download, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm, type Path } from "react-hook-form";
+import { Controller, useFieldArray, useForm, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
 import { applicationSchema, type ApplicationFormValues } from "@/features/applications/schemas/application.schema";
@@ -267,7 +267,7 @@ function StepContents({
   if (current === 8) return <div className="grid gap-6"><Field label="Do you currently have the right to work in the UK?" required><RadioGroup defaultValue="yes"><div className="flex items-center gap-2"><RadioGroupItem id="right-yes" value="yes" /><Label htmlFor="right-yes">Yes, without restrictions</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-visa" value="visa" /><Label htmlFor="right-visa">Yes, with a current visa</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="right-no" value="no" /><Label htmlFor="right-no">No</Label></div></RadioGroup></Field><Field label="Will you require visa sponsorship?" required><Select><SelectTrigger><SelectValue placeholder="Choose an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem></SelectContent></Select></Field></div>;
   if (current === 1) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Full name" error={errors.fullName?.message} required><Input aria-describedby={errors.fullName ? "full-name-error" : undefined} {...form.register("fullName")} placeholder="Enter your full name" /></Field><Field label="Email address" error={errors.email?.message} required><Input {...form.register("email")} placeholder="you@example.com" type="email" /></Field><Field label="Mobile number" error={errors.mobile?.message} required><Input {...form.register("mobile")} placeholder="07123 456789" type="tel" /></Field><DatePickerField label="Date of birth" /><Field label="Home address" error={errors.address?.message} required><Input {...form.register("address")} placeholder="Start typing your address" /></Field><Field label="Postcode" error={errors.postcode?.message} required><Input {...form.register("postcode")} placeholder="e.g. SW1A 1AA" /></Field></div>;
   if (current === 0) return <div className="grid gap-5"><Field label="Email address" required><Input placeholder="you@example.com" type="email" /></Field><Field label="Create password" hint="Use at least 12 characters." required><Input type="password" /></Field><Field label="Confirm password" required><Input type="password" /></Field></div>;
-  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Job or role you are applying for" required><Select onValueChange={(value) => form.setValue("role", value, { shouldValidate: true })} value={form.watch("role")}><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select></Field><Field label="Preferred location"><Select onValueChange={(value) => form.setValue("location", value)} value={form.watch("location")}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select></Field><Field label="Employment type"><Select onValueChange={(value) => form.setValue("employmentType", value as Values["employmentType"])} value={form.watch("employmentType")}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select></Field><DatePickerField label="Available start date" /></div>;
+  if (current === 2) return <div className="grid gap-5 sm:grid-cols-2"><Field label="Job or role you are applying for" required><Controller control={form.control} name="role" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="Customer Experience Associate">Customer Experience Associate</SelectItem><SelectItem value="Customer Experience Team Lead">Customer Experience Team Lead</SelectItem></SelectContent></Select>} /></Field><Field label="Preferred location"><Controller control={form.control} name="location" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger><SelectContent><SelectItem value="London">London</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent></Select>} /></Field><Field label="Employment type"><Controller control={form.control} name="employmentType" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger><SelectContent><SelectItem value="full-time">Full-time</SelectItem><SelectItem value="part-time">Part-time</SelectItem><SelectItem value="temporary">Temporary</SelectItem></SelectContent></Select>} /></Field><DatePickerField label="Available start date" /></div>;
   if (current === 3) return <div className="space-y-5"><Field label="Personal profile" hint="Up to 500 words"><Textarea placeholder="Tell us a little about yourself and your experience." rows={6} /></Field><Field label="Why are you interested in this role?"><Textarea placeholder="Share why this opportunity appeals to you." rows={5} /></Field></div>;
   return <div className="grid gap-5 sm:grid-cols-2"><Field label="Key skills"><Input placeholder="e.g. Customer service, Excel, teamwork" /></Field><Field label="Languages"><Input placeholder="Include your level of fluency" /></Field><Field label="Driving licence"><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="yes">Yes</SelectItem><SelectItem value="no">No</SelectItem><SelectItem value="na">Not applicable</SelectItem></SelectContent></Select></Field><Field label="Professional qualifications"><Input placeholder="Add relevant certificates" /></Field></div>;
 }
@@ -275,7 +275,7 @@ function StepContents({
 function Adjustments({ form }: { form: ReturnType<typeof useForm<Values>> }) {
   const choice = form.watch("adjustments");
   const options = ["Visual impairment support", "Deaf or hard-of-hearing support", "Mobility or physical accessibility", "Learning disability support", "Neurodivergence-related adjustment", "Communication support", "Accessible interview location", "Extra assessment time", "Other"];
-  return <div className="space-y-6"><Alert className="border-emerald-200 bg-emerald-50"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><RadioGroup onValueChange={(value) => form.setValue("adjustments", value as Values["adjustments"])} value={choice}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-white p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
+  return <div className="space-y-6"><Alert className="border-emerald-200 bg-emerald-50"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-white p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
 }
 
 function Equality() { return <div className="space-y-6"><Alert className="border-indigo-200 bg-indigo-50"><Info /><AlertTitle>Optional equality and diversity monitoring</AlertTitle><AlertDescription>Providing this information is optional. It is used for equality and diversity monitoring and is not used to assess your application.</AlertDescription></Alert><div className="grid gap-5 sm:grid-cols-2">{["Age group", "Sex", "Gender identity", "Race or ethnic group", "Religion or belief", "Sexual orientation"].map((label) => <Field key={label} label={label}><Select><SelectTrigger><SelectValue placeholder="Select an option" /></SelectTrigger><SelectContent><SelectItem value="prefer-not">Prefer not to say</SelectItem><SelectItem value="option-1">Option 1</SelectItem><SelectItem value="option-2">Option 2</SelectItem></SelectContent></Select></Field>)}</div></div>; }
@@ -302,6 +302,7 @@ function ReviewAndSubmit({
   const [isPending, startTransition] = useTransition();
   const accurate = form.watch("declarationAccurate");
   const editRestriction = form.watch("declarationEditRestriction");
+  console.log("DEBUG2 render accurate=", accurate, "editRestriction=", editRestriction, "getValues=", form.getValues("declarationAccurate"), form.getValues("declarationEditRestriction"));
   const isSubmitted = applicationStatus === "submitted";
 
   const sections = [
@@ -384,10 +385,16 @@ function ReviewAndSubmit({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-3">
-              <Checkbox
-                checked={accurate}
-                id="declaration-accurate"
-                onCheckedChange={(checked) => form.setValue("declarationAccurate", checked === true, { shouldValidate: true })}
+              <Controller
+                control={form.control}
+                name="declarationAccurate"
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    id="declaration-accurate"
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                )}
               />
               <Label className="font-normal leading-5" htmlFor="declaration-accurate">
                 I confirm that the information provided in this application is complete and accurate.
@@ -395,10 +402,16 @@ function ReviewAndSubmit({
             </div>
             <FormError message={errors.declarationAccurate?.message} />
             <div className="flex gap-3">
-              <Checkbox
-                checked={editRestriction}
-                id="declaration-edit-restriction"
-                onCheckedChange={(checked) => form.setValue("declarationEditRestriction", checked === true, { shouldValidate: true })}
+              <Controller
+                control={form.control}
+                name="declarationEditRestriction"
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    id="declaration-edit-restriction"
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                )}
               />
               <Label className="font-normal leading-5" htmlFor="declaration-edit-restriction">
                 I understand that after submitting my application, I may not be able to edit some information.
