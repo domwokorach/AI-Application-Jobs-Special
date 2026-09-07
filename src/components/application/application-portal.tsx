@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, Download, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useFieldArray, useForm, useWatch, type FieldErrors, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
@@ -21,6 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -237,6 +245,10 @@ export function ApplicationPortal({
   const [current, setCurrent] = useState(initialStep);
   const [applicationStatus, setApplicationStatus] = useState<ApplicationStatus>(initialSubmission ? "submitted" : "draft");
   const [submission, setSubmission] = useState<SubmissionResult | undefined>(initialSubmission);
+  // Only jump straight to the full confirmation page when the app was loaded
+  // already-submitted (e.g. visiting /submitted directly). A fresh in-session
+  // submit instead shows a confirmation pop-up over the review step.
+  const [showFullConfirmationOnLoad] = useState(() => initialScreen === "form" && Boolean(initialSubmission));
   const form = useForm<Values>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
@@ -292,7 +304,7 @@ export function ApplicationPortal({
       />
     );
   }
-  if (applicationStatus === "submitted" && submission) {
+  if (applicationStatus === "submitted" && submission && showFullConfirmationOnLoad) {
     return (
       <Confirmation
         applicationId={APPLICATION_ID}
@@ -473,8 +485,10 @@ function ReviewAndSubmit({
   onStatusChange: (status: ApplicationStatus) => void;
   onSubmitted: (result: SubmissionResult) => void;
 }) {
+  const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
+  const [submittedResult, setSubmittedResult] = useState<SubmissionResult>();
   const [isPending, startTransition] = useTransition();
   const accurate = useWatch({ control: form.control, name: "declarationAccurate" });
   const editRestriction = useWatch({ control: form.control, name: "declarationEditRestriction" });
@@ -516,9 +530,7 @@ function ReviewAndSubmit({
         onStatusChange("ready-to-submit");
         return;
       }
-      onStatusChange("submitted");
-      setConfirmOpen(false);
-      onSubmitted({
+      const submissionResult: SubmissionResult = {
         reference: result.reference,
         submittedAt: result.submittedAt,
         email: result.email,
@@ -526,7 +538,11 @@ function ReviewAndSubmit({
         location: result.location,
         emailDelivered: result.emailDelivered,
         pdfStatus: result.pdfStatus,
-      });
+      };
+      onStatusChange("submitted");
+      setConfirmOpen(false);
+      onSubmitted(submissionResult);
+      setSubmittedResult(submissionResult);
     });
   }
 
@@ -671,6 +687,38 @@ function ReviewAndSubmit({
           )}
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={Boolean(submittedResult)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <span className="grid size-11 place-items-center rounded-full bg-secondary text-secondary-foreground">
+              <CheckCircle2 className="size-5" />
+            </span>
+            <DialogTitle className="mt-2 text-lg">Application submitted successfully</DialogTitle>
+            <DialogDescription>
+              We&apos;ve received your application. A confirmation email will be sent to you with a copy of your
+              application, a PDF, and your application reference number for your personal records. Please keep the
+              reference number safe, as you may need it for any future enquiries about your application.
+            </DialogDescription>
+          </DialogHeader>
+          {submittedResult && (
+            <p className="text-sm text-muted-foreground">
+              Reference: <span className="font-mono font-medium text-foreground">{submittedResult.reference}</span>
+            </p>
+          )}
+          <DialogFooter>
+            {submittedResult && (
+              <Button asChild variant="outline">
+                <a download={pdfFilename(submittedResult.reference)} href={`/applications/${applicationId}/pdf`}>
+                  <Download />
+                  Download PDF
+                </a>
+              </Button>
+            )}
+            <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -690,7 +738,6 @@ function Confirmation({
   const [isResending, startResend] = useTransition();
   const [isRetryingPdf, startPdfRetry] = useTransition();
   const [downloadStarted, setDownloadStarted] = useState(false);
-  const autoDownloadTriggered = useRef(false);
   const { reference, submittedAt, email, emailDelivered, jobTitle, location, pdfStatus } = submission;
   const pdfUrl = `/applications/${applicationId}/pdf`;
   const filename = pdfFilename(reference);
@@ -715,14 +762,6 @@ function Confirmation({
     link.remove();
     setDownloadStarted(true);
   }
-
-  useEffect(() => {
-    if (pdfStatus === "READY" && !autoDownloadTriggered.current) {
-      autoDownloadTriggered.current = true;
-      triggerDownload();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfStatus]);
 
   function handleResend() {
     startResend(async () => {
