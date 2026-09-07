@@ -1,0 +1,20 @@
+import playwright from "playwright";
+const { chromium } = playwright;
+const browser = await chromium.launch();
+const page = await browser.newPage();
+page.on("pageerror", (e) => console.log("[pageerror]", e.message));
+
+await page.goto("http://localhost:3000/applications/demo-application/job-preferences");
+await page.waitForTimeout(1000);
+console.log("step text before:", await page.locator("text=/Step \\d+ of/i").first().innerText());
+
+const btn = page.locator('button:has-text("Work experience")');
+console.log("count:", await btn.count());
+console.log("visible:", await btn.isVisible());
+const box = await btn.boundingBox();
+console.log("box:", box);
+
+await btn.click();
+await page.waitForTimeout(800);
+console.log("step text after:", await page.locator("text=/Step \\d+ of/i").first().innerText());
+await browser.close();

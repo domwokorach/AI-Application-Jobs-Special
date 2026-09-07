@@ -39,7 +39,7 @@ export function MobileApplicationNav({
           </nav>
         </SheetContent>
       </Sheet>
-      <span className="font-serif text-lg font-semibold">northstar</span>
+      <span className="font-serif text-lg font-semibold">AI Application Fast Specialist</span>
     </div>
   );
 }

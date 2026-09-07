@@ -6,8 +6,14 @@ const context = await browser.newContext({ acceptDownloads: true });
 const page = await context.newPage();
 
 const consoleErrors = [];
-page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); if (msg.text().includes("DEBUG2")) console.log(msg.text()); });
-page.on("pageerror", (err) => consoleErrors.push("[pageerror] " + err.message));
+page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+page.on("pageerror", (err) => { console.log("[pageerror]", err.message); consoleErrors.push("[pageerror] " + err.message); });
+
+async function gotoStep(label) {
+  const sidebarNav = page.locator('nav[aria-label="Application steps"]').first();
+  await sidebarNav.getByRole("button", { name: label, exact: true }).click();
+  await page.waitForTimeout(500);
+}
 
 // Load the SPA once; all step navigation below happens client-side (sidebar clicks), matching real usage.
 await page.goto("http://localhost:3000/applications/demo-application/personal-details");
@@ -20,19 +26,32 @@ await page.fill('input[placeholder="Start typing your address"]', "1 Test Street
 await page.fill('input[placeholder="e.g. SW1A 1AA"]', "SW1A 1AA");
 
 console.log("Navigating to Job preferences via sidebar...");
-await page.click('text=Job preferences');
-await page.waitForTimeout(500);
+await gotoStep("Job preferences");
 
 const roleTrigger = page.locator('button:has-text("Select a role")');
 await roleTrigger.click();
 await page.waitForTimeout(200);
 await page.locator('[role="option"]').first().click();
 await page.waitForTimeout(200);
-console.log("Role trigger after selection still shows placeholder:", await roleTrigger.count());
+
+console.log("Navigating to Work experience via sidebar...");
+await gotoStep("Work experience");
+await page.fill('input[placeholder="Enter job title"]', "Support Worker");
+await page.fill('input[placeholder="Enter employer"]', "Acme Care Ltd");
+
+console.log("Navigating to Education via sidebar...");
+await gotoStep("Education");
+await page.fill('input[placeholder="Enter institution"]', "City College");
+await page.fill('input[placeholder="Enter qualification"]', "NVQ Level 3");
+
+console.log("Navigating to References via sidebar...");
+await gotoStep("References");
+await page.fill('input[placeholder="Enter reference name"]', "Jane Doe");
+await page.fill('input[placeholder="Enter email address"]', "jane.doe@example.com");
 
 console.log("Navigating to Review & submit via sidebar...");
-await page.click('text=Review & submit');
-await page.waitForTimeout(800);
+await gotoStep("Review & submit");
+await page.waitForTimeout(500);
 
 const checkboxes = page.locator('#declaration-accurate, #declaration-edit-restriction');
 const count = await checkboxes.count();
@@ -49,14 +68,21 @@ console.log("Submit Application disabled (final)?", await submitBtn.isDisabled()
 
 console.log("Clicking Submit Application...");
 await submitBtn.click();
-await page.waitForSelector('text=Confirm submit application', { timeout: 10000 });
-console.log("Dialog opened");
+await page.waitForTimeout(500);
+try {
+  await page.waitForSelector('text=Confirm submit application', { timeout: 5000 });
+  console.log("Dialog opened");
+} catch {
+  console.log("Dialog did NOT open. Toast/body text:", (await page.locator('body').innerText()).slice(0, 500));
+  await browser.close();
+  process.exit(0);
+}
 
 const confirmBtn = page.locator('button:has-text("Confirm Submit")');
-console.log("Double-clicking Confirm Submit rapidly...");
+console.log("Double-clicking Confirm Submit rapidly (race test)...");
 await Promise.all([
   confirmBtn.click(),
-  confirmBtn.click({ force: true }).catch((e) => console.log("second click error (expected if disabled fast enough):", e.message)),
+  confirmBtn.click({ force: true }).catch((e) => console.log("second click error (expected once disabled):", e.message)),
 ]);
 
 await page.waitForTimeout(300);
@@ -73,8 +99,7 @@ try {
 
 const html = await page.content();
 const refs = [...html.matchAll(/APP-\d{4}-\d{6}/g)].map((m) => m[0]);
-const uniqueRefs = [...new Set(refs)];
-console.log("References found on page:", uniqueRefs);
+console.log("References found on page:", [...new Set(refs)]);
 
 console.log("Console errors collected:", consoleErrors);
 

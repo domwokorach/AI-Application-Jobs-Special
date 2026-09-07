@@ -59,8 +59,8 @@ export function ApplicationSidebar({
   return (
     <aside className={`w-(--sidebar-width) flex-col border-r border-primary-foreground/20 bg-primary px-6 py-7 text-primary-foreground ${className ?? ""}`}>
       <a className="flex items-center gap-2 font-serif text-2xl font-semibold tracking-tight" href="#">
-        <span className="grid size-8 place-items-center rounded-full border border-primary-foreground/75 font-sans text-sm">N</span>
-        northstar
+        <span className="grid size-8 place-items-center rounded-full border border-primary-foreground/75 font-sans text-xs">AI</span>
+        AI Application Fast Specialist
       </a>
       <div className="mt-12 border-b border-white/15 pb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground/70">Your application</p>
@@ -70,7 +70,7 @@ export function ApplicationSidebar({
       <nav aria-label="Application steps" className="mt-5 overflow-y-auto">
         <ApplicationStepList current={current} onSelect={onSelect} steps={steps} />
       </nav>
-      <a className="mt-auto flex items-center gap-2 text-xs text-primary-foreground/80 underline underline-offset-4" href="mailto:recruitment@northstar.example">
+      <a className="mt-auto flex items-center gap-2 text-xs text-primary-foreground/80 underline underline-offset-4" href="mailto:recruitment@aiapplicationfastspecialist.example">
         <CircleHelp className="size-4" />
         Need help? Contact recruitment
       </a>
