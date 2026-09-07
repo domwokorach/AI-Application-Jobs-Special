@@ -7,7 +7,7 @@ export function Header() {
   return (
     <header className="border-b bg-background">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
-        <Link className="flex items-center gap-2 font-serif text-xl font-semibold" href="/dashboard">
+        <Link className="flex items-center gap-2 font-serif text-xl font-semibold" href="/">
           <span className="grid size-8 place-items-center rounded-full bg-primary font-sans text-sm text-primary-foreground">N</span>
           {siteConfig.name}
         </Link>

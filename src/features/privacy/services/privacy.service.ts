@@ -2,7 +2,15 @@ import "server-only";
 import { getSubmission, type SubmissionRecord } from "@/features/applications/services/applications.service";
 import { requireUser, type AuthenticatedUser, type RecruitmentRole, type SensitiveDocumentType } from "@/lib/auth";
 
-export type AuditEventType = "DOCUMENT_VIEWED" | "DOCUMENT_ACCESS_DENIED";
+// Deliberately excludes any "SCREENSHOT_TAKEN" style event: a normal website has no reliable,
+// non-spoofable signal that an OS-level screenshot (e.g. macOS Shift+Cmd+4) occurred, so we never
+// record one. Only events this app can actually observe and trust are represented here.
+export type AuditEventType =
+  | "DOCUMENT_VIEWED"
+  | "DOCUMENT_ACCESS_DENIED"
+  | "SENSITIVE_SCREEN_HIDDEN"
+  | "SENSITIVE_SCREEN_REAUTHENTICATED"
+  | "PROTECTED_COPY_ATTEMPT";
 
 export type SensitiveDocumentAuditEvent = {
   type: AuditEventType;
@@ -109,4 +117,30 @@ export async function authorizeSensitiveDocumentAccess(
 
 export async function getSensitiveDocumentAuditEvents(): Promise<readonly SensitiveDocumentAuditEvent[]> {
   return auditEvents;
+}
+
+/**
+ * Records a client-reported privacy event (screen hidden/reauthenticated, copy attempt) against
+ * the currently authenticated user. Silently no-ops if there is no authenticated session — these
+ * are best-effort telemetry, not an access-control decision, so a failure here must never block
+ * the candidate information the event refers to.
+ */
+export async function recordAuthenticatedPrivacyEvent(
+  type: "SENSITIVE_SCREEN_HIDDEN" | "SENSITIVE_SCREEN_REAUTHENTICATED" | "PROTECTED_COPY_ATTEMPT",
+  applicationId: string,
+  documentType: SensitiveDocumentType,
+): Promise<void> {
+  try {
+    const actor = await requireUser();
+    await recordSensitiveDocumentAuditEvent({
+      type,
+      documentType,
+      applicationId,
+      actorId: actor.id,
+      actorRole: actor.role,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // No authenticated session to attribute the event to — nothing to record.
+  }
 }

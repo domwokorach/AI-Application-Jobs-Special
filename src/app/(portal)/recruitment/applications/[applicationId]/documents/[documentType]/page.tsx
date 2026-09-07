@@ -4,6 +4,7 @@ import { ConfidentialityNotice } from "@/components/privacy/confidentiality-noti
 import { AccessDenied, SecureSessionExpired } from "@/components/privacy/privacy-access-state";
 import { SensitiveDocumentGate } from "@/components/privacy/sensitive-document-gate";
 import { SensitiveDocumentViewer } from "@/components/privacy/sensitive-document-viewer";
+import { SensitiveScreenShield } from "@/components/privacy/sensitive-screen-shield";
 import { authorizeSensitiveDocumentAccess } from "@/features/privacy/services/privacy.service";
 import type { SensitiveDocumentType } from "@/lib/auth";
 
@@ -22,17 +23,23 @@ export default async function SensitiveDocumentPage({
 
   return (
     <SensitiveDocumentGate actorId={access.actor.id} applicationId={applicationId}>
-      <div className="min-h-screen bg-muted/30">
-        <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
-          <ConfidentialityNotice />
+      <SensitiveScreenShield
+        auditContext={{ applicationId, documentType: documentType as SensitiveDocumentType }}
+        shieldWhenHidden
+        shieldWhenWindowBlurred={false}
+      >
+        <div className="min-h-screen bg-muted/30">
+          <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
+            <ConfidentialityNotice />
+          </div>
+          <SensitiveDocumentViewer
+            applicationId={applicationId}
+            documentType={documentType as SensitiveDocumentType}
+            submission={access.submission}
+            watermarkTimestamp={new Date().toISOString()}
+          />
         </div>
-        <SensitiveDocumentViewer
-          actorId={access.actor.id}
-          documentType={documentType as SensitiveDocumentType}
-          submission={access.submission}
-          watermarkTimestamp={new Date().toISOString()}
-        />
-      </div>
+      </SensitiveScreenShield>
     </SensitiveDocumentGate>
   );
 }
