@@ -2,6 +2,17 @@
   "name": "ai-application-special",
   "version": "0.1.0",
   "private": true,
+  "description": "A Next.js App Router job-application portal using TypeScript, Tailwind CSS, shadcn/ui, React Hook Form, Zod, and Lucide.",
+  "homepage": "https://github.com/domwokorach/AI-Application-Jobs-Special#readme",
+  "bugs": {
+    "url": "https://github.com/domwokorach/AI-Application-Jobs-Special/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/domwokorach/AI-Application-Jobs-Special.git"
+  },
+  "license": "ISC",
+  "author": "dominic wokorach",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
