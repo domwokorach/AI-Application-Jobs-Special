@@ -25,11 +25,11 @@ export function MobileApplicationNav({
             <Menu />
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-[min(88vw,360px)] border-0 bg-[#2B2B2B] p-0 text-primary-foreground" side="left">
+        <SheetContent className="w-[min(88vw,360px)] border-0 bg-[#2B2B2B] p-0 text-sidebar-foreground" side="left">
           <SheetHeader className="flex-row items-center justify-between border-b border-[#F2F2F2] px-6 py-6 text-left">
-            <SheetTitle className="font-serif text-xl text-primary-foreground">Your application</SheetTitle>
+            <SheetTitle className="font-serif text-xl text-sidebar-foreground">Your application</SheetTitle>
             <SheetClose asChild>
-              <Button aria-label="Close navigation" className="text-primary-foreground hover:bg-[#F2F2F2] hover:text-[#2B2B2B]" size="icon" variant="ghost">
+              <Button aria-label="Close navigation" className="text-sidebar-foreground hover:bg-[#F2F2F2] hover:text-[#2B2B2B]" size="icon" variant="ghost">
                 <X />
               </Button>
             </SheetClose>

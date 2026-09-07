@@ -47,7 +47,7 @@ export function SkillsInput({
               {skill}
               <button
                 aria-label={`Remove ${skill}`}
-                className="rounded-full p-0.5 hover:bg-[#F2F2F2]"
+                className="rounded-full p-0.5 hover:bg-[#F2F2F2] hover:text-[#2B2B2B]"
                 onClick={() => removeSkill(skill)}
                 type="button"
               >
