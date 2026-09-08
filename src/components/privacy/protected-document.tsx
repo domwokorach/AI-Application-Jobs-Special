@@ -14,6 +14,8 @@ type ProtectedDocumentProps = {
   watermark?: boolean;
   watermarkUserLabel?: string;
   watermarkTimestamp?: string;
+  /** "high" for highly confidential material — more tiles per screen, harder to crop out of a capture. */
+  watermarkDensity?: "low" | "medium" | "high";
   /** Intercepts the `copy` event so a copied selection carries a warning instead of candidate text. */
   copyProtection?: boolean;
 };
@@ -32,6 +34,7 @@ export function ProtectedDocument({
   watermark = true,
   watermarkUserLabel = "Authorised Recruitment User",
   watermarkTimestamp,
+  watermarkDensity,
   copyProtection = false,
 }: ProtectedDocumentProps) {
   const handleCopyAttempt = useCallback(() => {
@@ -44,6 +47,7 @@ export function ProtectedDocument({
       copyProtection={copyProtection}
       onCopyAttempt={handleCopyAttempt}
       watermark={watermark}
+      watermarkDensity={watermarkDensity}
       watermarkLabel="CONFIDENTIAL"
       watermarkTimestamp={watermarkTimestamp}
       watermarkUserLabel={watermarkUserLabel}

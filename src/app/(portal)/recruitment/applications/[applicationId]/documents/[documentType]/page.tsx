@@ -1,10 +1,8 @@
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { ConfidentialityNotice } from "@/components/privacy/confidentiality-notice";
 import { AccessDenied, SecureSessionExpired } from "@/components/privacy/privacy-access-state";
-import { SensitiveDocumentGate } from "@/components/privacy/sensitive-document-gate";
+import { ScreenshotProtectedContent } from "@/components/privacy/screenshot-protected-content";
 import { SensitiveDocumentViewer } from "@/components/privacy/sensitive-document-viewer";
-import { SensitiveScreenShield } from "@/components/privacy/sensitive-screen-shield";
 import { authorizeSensitiveDocumentAccess } from "@/features/privacy/services/privacy.service";
 import type { SensitiveDocumentType } from "@/lib/auth";
 
@@ -21,25 +19,31 @@ export default async function SensitiveDocumentPage({
   if (access.outcome === "session-expired") return <SecureSessionExpired />;
   if (access.outcome !== "authorized") return <AccessDenied />;
 
+  // HR sees the strongest policy tier (mandatory acknowledgement, applied automatically by
+  // ScreenshotProtectedContent for HIGHLY_CONFIDENTIAL); Recruitment and Hiring Manager get the
+  // standard confidentiality tier.
+  const sensitivity = access.actor.role === "hr" ? "HIGHLY_CONFIDENTIAL" : "CONFIDENTIAL";
+
   return (
-    <SensitiveDocumentGate actorId={access.actor.id} applicationId={applicationId}>
-      <SensitiveScreenShield
-        auditContext={{ applicationId, documentType: documentType as SensitiveDocumentType }}
-        shieldWhenHidden
-        shieldWhenWindowBlurred={false}
+    <div className="min-h-screen bg-muted/30">
+      <ScreenshotProtectedContent
+        applicationId={applicationId}
+        className="mx-auto w-full max-w-6xl px-4 sm:px-6"
+        // SensitiveDocumentViewer already wraps its content in <ProtectedDocument>, so the
+        // watermark/copy-deterrence layer is applied there, not duplicated here.
+        watermark={false}
+        privacyShield
+        resourceType={documentType as SensitiveDocumentType}
+        sensitivity={sensitivity}
       >
-        <div className="min-h-screen bg-muted/30">
-          <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
-            <ConfidentialityNotice />
-          </div>
-          <SensitiveDocumentViewer
-            applicationId={applicationId}
-            documentType={documentType as SensitiveDocumentType}
-            submission={access.submission}
-            watermarkTimestamp={new Date().toISOString()}
-          />
-        </div>
-      </SensitiveScreenShield>
-    </SensitiveDocumentGate>
+        <SensitiveDocumentViewer
+          applicationId={applicationId}
+          documentType={documentType as SensitiveDocumentType}
+          submission={access.submission}
+          watermarkDensity={sensitivity === "HIGHLY_CONFIDENTIAL" ? "high" : "medium"}
+          watermarkTimestamp={new Date().toISOString()}
+        />
+      </ScreenshotProtectedContent>
+    </div>
   );
 }

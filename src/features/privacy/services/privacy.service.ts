@@ -1,6 +1,7 @@
 import "server-only";
 import { getSubmission, type SubmissionRecord } from "@/features/applications/services/applications.service";
 import { requireUser, type AuthenticatedUser, type RecruitmentRole, type SensitiveDocumentType } from "@/lib/auth";
+import type { ConfidentialResourceType, ConfidentialitySensitivity } from "@/features/privacy/types/confidentiality.types";
 
 // Deliberately excludes any "SCREENSHOT_TAKEN" style event: a normal website has no reliable,
 // non-spoofable signal that an OS-level screenshot (e.g. macOS Shift+Cmd+4) occurred, so we never
@@ -21,6 +22,24 @@ export type SensitiveDocumentAuditEvent = {
   timestamp: string;
 };
 
+/**
+ * Recorded when the confidentiality warning dialog is shown or acknowledged. Unlike
+ * SensitiveDocumentAuditEvent, the resource being warned about isn't always a single downloadable
+ * document (it may be a review screen), so this carries the broader `resourceType` union instead
+ * of `SensitiveDocumentType`.
+ */
+export type ConfidentialityAuditEvent = {
+  type: "CONFIDENTIALITY_WARNING_SHOWN" | "CONFIDENTIALITY_ACKNOWLEDGED";
+  resourceType: ConfidentialResourceType;
+  sensitivity: ConfidentialitySensitivity;
+  applicationId?: string;
+  actorId?: string;
+  actorRole?: RecruitmentRole;
+  timestamp: string;
+};
+
+export type PrivacyAuditEvent = SensitiveDocumentAuditEvent | ConfidentialityAuditEvent;
+
 type AuthorizedDocumentAccess = {
   outcome: "authorized";
   actor: Required<Pick<AuthenticatedUser, "id" | "email" | "role">>;
@@ -33,7 +52,7 @@ type DeniedDocumentAccess = {
 
 export type SensitiveDocumentAccess = AuthorizedDocumentAccess | DeniedDocumentAccess;
 
-const auditEvents: SensitiveDocumentAuditEvent[] = [];
+const auditEvents: PrivacyAuditEvent[] = [];
 
 function sessionHasExpired(sessionExpiresAt?: string): boolean {
   return Boolean(sessionExpiresAt && new Date(sessionExpiresAt).getTime() <= Date.now());
@@ -115,8 +134,36 @@ export async function authorizeSensitiveDocumentAccess(
   };
 }
 
-export async function getSensitiveDocumentAuditEvents(): Promise<readonly SensitiveDocumentAuditEvent[]> {
+export async function getSensitiveDocumentAuditEvents(): Promise<readonly PrivacyAuditEvent[]> {
   return auditEvents;
+}
+
+/**
+ * Records that the confidentiality warning dialog was shown to, or acknowledged by, the currently
+ * authenticated recruitment-side user. Silently no-ops without a session — this is best-effort
+ * telemetry, not an access-control decision, and the actor identity always comes from the server
+ * session (`requireUser()`), never from the client, per this app's audit policy.
+ */
+export async function recordConfidentialityAuditEvent(
+  type: "CONFIDENTIALITY_WARNING_SHOWN" | "CONFIDENTIALITY_ACKNOWLEDGED",
+  resourceType: ConfidentialResourceType,
+  sensitivity: ConfidentialitySensitivity,
+  applicationId?: string,
+): Promise<void> {
+  try {
+    const actor = await requireUser();
+    auditEvents.push({
+      type,
+      resourceType,
+      sensitivity,
+      applicationId,
+      actorId: actor.id,
+      actorRole: actor.role,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // No authenticated session to attribute the event to — nothing to record.
+  }
 }
 
 /**

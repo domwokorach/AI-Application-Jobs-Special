@@ -19,17 +19,22 @@ export function SensitiveDocumentViewer({
   documentType,
   submission,
   watermarkTimestamp,
+  watermarkDensity,
 }: {
   applicationId: string;
   documentType: SensitiveDocumentType;
   submission: SubmissionRecord;
   watermarkTimestamp: string;
+  watermarkDensity?: "low" | "medium" | "high";
 }) {
   const [printWarning, setPrintWarning] = useState(false);
   const { summary } = submission;
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
+    // Horizontal max-width/padding is owned by the page's ScreenshotProtectedContent wrapper (so
+    // the persistent confidentiality Alert shares the same content column) — this only owns its
+    // own vertical rhythm.
+    <main className="space-y-5 py-6 sm:py-10">
       <header className="space-y-2">
         <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-destructive uppercase">
           <LockKeyhole className="size-4" />
@@ -43,7 +48,7 @@ export function SensitiveDocumentViewer({
         </div>
       </header>
 
-      <ProtectedDocument applicationId={applicationId} copyProtection documentType={documentType} watermarkTimestamp={watermarkTimestamp}>
+      <ProtectedDocument applicationId={applicationId} copyProtection documentType={documentType} watermarkDensity={watermarkDensity} watermarkTimestamp={watermarkTimestamp}>
         <Card className="min-h-136 overflow-hidden">
           <CardHeader className="border-b bg-card/90 backdrop-blur-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
