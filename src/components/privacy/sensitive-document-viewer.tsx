@@ -84,6 +84,28 @@ export function SensitiveDocumentViewer({
                     ))}
                   </div>
                 </section>
+                <section aria-labelledby="about-you">
+                  <h2 className="text-base font-semibold" id="about-you">About you</h2>
+                  <dl className="mt-3 grid gap-4 text-sm">
+                    <LongAnswer label="Personal Profile" value={summary.aboutYou.personalProfile} />
+                    <LongAnswer label="Why are you interested in this role?" value={summary.aboutYou.roleInterest} />
+                  </dl>
+                </section>
+                <section aria-labelledby="languages">
+                  <h2 className="text-base font-semibold" id="languages">Languages</h2>
+                  {summary.languages.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
+                  ) : (
+                    <dl className="mt-3 grid gap-3 text-sm">
+                      {summary.languages.map((language) => (
+                        <div key={language.code}>
+                          <dt className="font-medium">{language.name}</dt>
+                          <dd className="text-muted-foreground">{formatLanguageProficiency(language.proficiency)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </section>
               </>
             ) : (
               <div className="grid min-h-80 place-items-center rounded-lg border border-dashed bg-card/75 p-6 text-center">
@@ -100,6 +122,21 @@ export function SensitiveDocumentViewer({
         </Card>
       </ProtectedDocument>
     </main>
+  );
+}
+
+function formatLanguageProficiency(proficiency?: string) {
+  return proficiency
+    ? proficiency.replace("PROFESSIONAL", "Professional working proficiency").replaceAll("_", " ")
+    : "Proficiency not provided";
+}
+
+function LongAnswer({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="mt-1 whitespace-pre-wrap break-words font-medium">{value || "Not provided"}</dd>
+    </div>
   );
 }
 

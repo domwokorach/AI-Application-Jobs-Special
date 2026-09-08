@@ -7,6 +7,7 @@ import {
   getSubmission,
   sendApplicationConfirmationEmail,
   submitApplication,
+  type ApplicationSummary,
   type DocumentStatus,
 } from "@/features/applications/services/applications.service";
 
@@ -18,6 +19,7 @@ export type SubmitApplicationActionResult =
       email: string;
       jobTitle: string;
       location?: string;
+      summary: ApplicationSummary;
       emailDelivered: boolean;
       pdfStatus: DocumentStatus;
     }

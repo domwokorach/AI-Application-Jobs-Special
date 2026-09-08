@@ -11,7 +11,7 @@ export type ApplicationStatus =
 
 export type ApplicationStepId =
   | "account" | "personal-details" | "job-preferences" | "about-you" | "cv"
-  | "experience" | "skills" | "education" | "right-to-work" | "adjustments"
+  | "experience" | "skills" | "languages" | "education" | "right-to-work" | "adjustments"
   | "equality-diversity" | "references" | "review";
 
 export type ApplicationStep = {

@@ -8,6 +8,7 @@ export const applicationSteps: ApplicationStep[] = [
   { id: "cv", label: "CV" },
   { id: "experience", label: "Work experience" },
   { id: "skills", label: "Skills" },
+  { id: "languages", label: "Languages", optional: true },
   { id: "education", label: "Education" },
   { id: "right-to-work", label: "Right to work" },
   { id: "adjustments", label: "Reasonable adjustments", optional: true },

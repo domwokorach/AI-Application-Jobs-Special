@@ -97,6 +97,23 @@ export function ApplicationConfirmationPdf({ submission }: ApplicationConfirmati
         <DetailRow label="Employment type" value={summary.jobPreferences.employmentType} />
         <DetailRow label="Available from" value={summary.jobPreferences.availableFrom} />
 
+        <Text style={styles.sectionTitle}>About You</Text>
+        <DetailRow label="Personal Profile" value={summary.aboutYou.personalProfile} />
+        <DetailRow label="Why are you interested in this role?" value={summary.aboutYou.roleInterest} />
+
+        <Text style={styles.sectionTitle}>Languages</Text>
+        {summary.languages.length === 0 ? (
+          <Text style={styles.emptyNote}>No languages provided.</Text>
+        ) : (
+          summary.languages.map((language, index) => (
+            <DetailRow
+              key={index}
+              label={language.name}
+              value={language.proficiency?.replaceAll("_", " ") || "Proficiency not provided"}
+            />
+          ))
+        )}
+
         <Text style={styles.sectionTitle}>Work Experience</Text>
         {summary.workExperience.length === 0 ? (
           <Text style={styles.emptyNote}>No work experience provided.</Text>

@@ -2,6 +2,7 @@ import "server-only";
 import { renderToBuffer } from "@react-pdf/renderer";
 import type { Application, ApplicationStepId } from "@/types";
 import type { ApplicationFormValues } from "@/features/applications/schemas/application.schema";
+import type { LanguageSelection } from "@/features/applications/schemas/languages.schema";
 
 export async function getApplication(applicationId: string): Promise<Application | undefined> {
   void applicationId;
@@ -13,10 +14,13 @@ export async function saveApplicationStep(
   step: ApplicationStepId,
   data: Record<string, unknown>,
 ): Promise<void> {
-  void applicationId;
+  if (submissions.has(applicationId)) {
+    throw new Error("This application has already been submitted and can no longer be edited.");
+  }
+
+  const draft = applicationDrafts.get(applicationId) ?? {};
+  applicationDrafts.set(applicationId, { ...draft, ...data });
   void step;
-  void data;
-  throw new Error("Application persistence has not been configured. Connect a database in src/lib/db.ts.");
 }
 
 // Non-sensitive, candidate-facing summary of a submitted application. Reasonable-adjustment and
@@ -24,6 +28,8 @@ export async function saveApplicationStep(
 export type ApplicationSummary = {
   personalDetails: { fullName: string; email: string; mobile: string; dateOfBirth: string; address: string; postcode: string };
   jobPreferences: { role: string; location?: string; preferredEmployer?: string; employmentType?: string; availableFrom?: string };
+  aboutYou: { personalProfile?: string; roleInterest?: string };
+  languages: LanguageSelection[];
   workExperience: { title: string; employer: string }[];
   education: { institution: string; qualification: string }[];
   references: { name: string; email: string }[];
@@ -47,6 +53,11 @@ function buildApplicationSummary(data: ApplicationFormValues): ApplicationSummar
       employmentType: data.employmentType,
       availableFrom: data.availableFrom,
     },
+    aboutYou: {
+      personalProfile: data.personalProfile,
+      roleInterest: data.roleInterest,
+    },
+    languages: data.languages,
     workExperience: data.work.map((entry) => ({ title: entry.title, employer: entry.employer })),
     education: data.education.map((entry) => ({ institution: entry.institution, qualification: entry.qualification })),
     references: data.references.map((entry) => ({ name: entry.name, email: entry.email })),
@@ -68,6 +79,7 @@ export type SubmissionRecord = {
 };
 
 const submissions = new Map<string, SubmissionRecord>();
+const applicationDrafts = new Map<string, Record<string, unknown>>();
 const pendingSubmissions = new Map<string, Promise<SubmissionRecord>>();
 const emailDeliveries = new Map<string, boolean>();
 

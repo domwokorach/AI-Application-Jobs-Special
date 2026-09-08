@@ -4,12 +4,21 @@ import { useEffect, useRef, useState } from "react";
 
 export type AutosaveStatus = "idle" | "saving" | "saved" | "error";
 
-export function useAutosave<T>(value: T, onSave: (value: T) => Promise<void>, delayMs = 1000) {
+export function useAutosave<T>(
+  value: T,
+  onSave: (value: T) => Promise<void>,
+  delayMs = 1000,
+  enabled = true,
+) {
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const timeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const initial = useRef(true);
 
   useEffect(() => {
+    if (!enabled) {
+      clearTimeout(timeout.current);
+      return;
+    }
     if (initial.current) {
       initial.current = false;
       return;
@@ -26,7 +35,7 @@ export function useAutosave<T>(value: T, onSave: (value: T) => Promise<void>, de
     }, delayMs);
     return () => clearTimeout(timeout.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, delayMs]);
+  }, [value, delayMs, enabled]);
 
   return status;
 }
