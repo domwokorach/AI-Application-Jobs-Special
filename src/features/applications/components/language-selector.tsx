@@ -208,7 +208,7 @@ export function LanguageSelector({
           {showProficiency && (
             <div className="grid min-w-0 gap-2">
               <Label htmlFor={`language-proficiency-${language.code}`}>Proficiency</Label>
-              <Select disabled={disabled} onValueChange={(proficiency) => updateLanguage(language.code, { proficiency: proficiency as LanguageProficiency })} value={language.proficiency}>
+              <Select disabled={disabled} onValueChange={(proficiency) => updateLanguage(language.code, { proficiency: proficiency as LanguageProficiency })} value={language.proficiency ?? ""}>
                 <SelectTrigger className="min-h-11 w-full min-w-0" id={`language-proficiency-${language.code}`}>
                   <SelectValue placeholder="Select proficiency" />
                 </SelectTrigger>

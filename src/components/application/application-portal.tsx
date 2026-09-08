@@ -631,7 +631,7 @@ function EqualitySelect({
   return (
     <Field label={label}>
       <Controller control={form.control} name={name} render={({ field }) => (
-        <Select onValueChange={field.onChange} value={field.value}>
+        <Select onValueChange={field.onChange} value={field.value ?? ""}>
           <SelectTrigger>
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
