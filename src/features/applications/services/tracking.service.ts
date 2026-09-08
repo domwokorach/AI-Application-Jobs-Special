@@ -37,6 +37,39 @@ export function seedApplicationTracking(applicationId: string, submission: Submi
   ]);
 }
 
+/**
+ * Same idea as `seedApplicationTracking`, but only seeds events up to (and including) a target
+ * stage — used for the illustrative "other application" seeded alongside the real demo
+ * application, so the list page can genuinely show more than one recruitment stage rather than
+ * every seeded application converging on the same fully-progressed pipeline.
+ */
+export async function seedApplicationTrackingUpTo(
+  applicationId: string,
+  submission: SubmissionRecord,
+  targetStage: Extract<TrackingStage, "RECRUITMENT_PENDING" | "RECRUITMENT_ACCEPTED" | "HIRING_MANAGER_PENDING" | "HIRING_MANAGER_REVIEW">,
+): Promise<void> {
+  if (trackingStore.has(applicationId)) return;
+
+  const submittedAt = new Date(submission.submittedAt);
+  const at = (minutesAfterSubmission: number) => addMinutes(submittedAt, minutesAfterSubmission).toISOString();
+
+  const fullPipeline: InternalApplicationEvent[] = [
+    { id: `${applicationId}-submitted`, type: "APPLICATION_SUBMITTED", occurredAt: submission.submittedAt },
+    { id: `${applicationId}-recruitment-accepted`, type: "RECRUITMENT_ACCEPTED", occurredAt: at(5) },
+    { id: `${applicationId}-forwarded`, type: "FORWARDED_TO_HIRING_MANAGER", occurredAt: at(9) },
+    { id: `${applicationId}-hm-review-started`, type: "HIRING_MANAGER_REVIEW_STARTED", occurredAt: at(14) },
+  ];
+
+  const cutoffIndex: Record<typeof targetStage, number> = {
+    RECRUITMENT_PENDING: 1,
+    RECRUITMENT_ACCEPTED: 2,
+    HIRING_MANAGER_PENDING: 3,
+    HIRING_MANAGER_REVIEW: 4,
+  };
+
+  trackingStore.set(applicationId, fullPipeline.slice(0, cutoffIndex[targetStage]));
+}
+
 /** Derives the candidate-visible stage strictly from which discrete events have actually been recorded. */
 function deriveCurrentStage(events: InternalApplicationEvent[]): TrackingStage {
   const types = new Set(events.map((event) => event.type));

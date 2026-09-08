@@ -1,4 +1,34 @@
-import type { CandidateTrackingEvent, InternalApplicationEvent, InternalApplicationEventType } from "@/features/applications/types/tracking.types";
+import type { VariantProps } from "class-variance-authority";
+import type { badgeVariants } from "@/components/ui/badge";
+import type {
+  CandidateTrackingEvent,
+  InternalApplicationEvent,
+  InternalApplicationEventType,
+  TrackingStage,
+} from "@/features/applications/types/tracking.types";
+
+type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
+
+/**
+ * Candidate-facing label + semantic badge styling for a persisted recruitment stage — the
+ * `TrackingStage` equivalent of `StatusBadge`'s `ApplicationStatus` mapping. Never render a raw
+ * value like "HIRING_MANAGER_PENDING" to a candidate; always go through this.
+ */
+const CANDIDATE_STAGE_STATUS: Record<TrackingStage, { label: string; variant: BadgeVariant }> = {
+  RECRUITMENT_PENDING: { label: "Recruitment Review", variant: "info" },
+  RECRUITMENT_ACCEPTED: { label: "Reviewed by Recruitment", variant: "info" },
+  HIRING_MANAGER_PENDING: { label: "Waiting for Hiring Manager Review", variant: "info" },
+  HIRING_MANAGER_REVIEW: { label: "Hiring Manager Review", variant: "info" },
+  NEXT_STAGE: { label: "Next Stage", variant: "warning" },
+  HIRED: { label: "Successful", variant: "success" },
+  UNSUCCESSFUL: { label: "Application Unsuccessful", variant: "destructive" },
+  WITHDRAWN: { label: "Withdrawn", variant: "outline" },
+  CLOSED: { label: "Closed", variant: "secondary" },
+};
+
+export function getCandidateApplicationStatus(stage: TrackingStage): { label: string; variant: BadgeVariant } {
+  return CANDIDATE_STAGE_STATUS[stage];
+}
 
 /**
  * Candidate-safe copy for each internal event type that is allowed to reach the candidate.

@@ -16,19 +16,7 @@ import { getCandidateSessionId } from "@/lib/candidate-session";
 import { getSubmission } from "@/features/applications/services/applications.service";
 import { getApplicationTracking } from "@/features/applications/services/tracking.service";
 import { buildApplicationTimelineSteps, getNextStepMessage } from "@/features/applications/utils/application-timeline.utils";
-import type { TrackingStage } from "@/features/applications/types/tracking.types";
-
-const STAGE_LABELS: Record<TrackingStage, string> = {
-  RECRUITMENT_PENDING: "Recruitment review",
-  RECRUITMENT_ACCEPTED: "Recruitment review",
-  HIRING_MANAGER_PENDING: "Hiring Manager review",
-  HIRING_MANAGER_REVIEW: "Hiring Manager review",
-  NEXT_STAGE: "Next stage",
-  HIRED: "Hired",
-  UNSUCCESSFUL: "Unsuccessful",
-  WITHDRAWN: "Withdrawn",
-  CLOSED: "Closed",
-};
+import { getCandidateApplicationStatus } from "@/features/applications/utils/tracking-mapping.utils";
 
 export default async function ApplicationTrackingPage({ params }: PageProps<"/applications/[applicationId]/tracking">) {
   await connection();
@@ -43,6 +31,7 @@ export default async function ApplicationTrackingPage({ params }: PageProps<"/ap
 
   const steps = buildApplicationTimelineSteps(tracking);
   const nextStepMessage = getNextStepMessage(tracking.currentStage);
+  const status = getCandidateApplicationStatus(tracking.currentStage);
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-5 py-10">
@@ -53,7 +42,7 @@ export default async function ApplicationTrackingPage({ params }: PageProps<"/ap
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/applications">Applications</BreadcrumbLink>
+            <BreadcrumbLink href="/applications">Your Applications</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -76,7 +65,7 @@ export default async function ApplicationTrackingPage({ params }: PageProps<"/ap
       <Card>
         <CardHeader>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Current status</p>
-          <CardTitle className="font-serif text-2xl">{STAGE_LABELS[tracking.currentStage]}</CardTitle>
+          <CardTitle className="font-serif text-2xl">{status.label}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
           <div>

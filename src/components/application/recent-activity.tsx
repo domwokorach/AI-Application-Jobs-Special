@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApplicationTimeline } from "@/components/application/application-timeline";
 import { buildApplicationTimelineSteps } from "@/features/applications/utils/application-timeline.utils";
+import { getApplicationTrackingAction } from "@/features/applications/actions/tracking.actions";
 import type { CandidateTracking } from "@/features/applications/types/tracking.types";
 
 function RecentActivitySkeleton() {
@@ -36,15 +37,14 @@ export function RecentActivity({ applicationId }: { applicationId: string }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`/api/applications/${applicationId}/tracking`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load"))))
-      .then((payload: { success: boolean; data: CandidateTracking | null }) => {
+    getApplicationTrackingAction(applicationId)
+      .then((tracking) => {
         if (cancelled) return;
-        if (!payload.success || !payload.data) {
+        if (!tracking) {
           setState({ status: "error" });
           return;
         }
-        setState({ status: "ready", tracking: payload.data });
+        setState({ status: "ready", tracking });
       })
       .catch(() => {
         if (!cancelled) setState({ status: "error" });

@@ -20,6 +20,7 @@ export async function saveApplicationStep(
 
   const draft = applicationDrafts.get(applicationId) ?? {};
   applicationDrafts.set(applicationId, { ...draft, ...data });
+  draftLastSavedAt.set(applicationId, new Date().toISOString());
   void step;
 }
 
@@ -80,8 +81,98 @@ export type SubmissionRecord = {
 
 const submissions = new Map<string, SubmissionRecord>();
 const applicationDrafts = new Map<string, Record<string, unknown>>();
+const draftLastSavedAt = new Map<string, string>();
 const pendingSubmissions = new Map<string, Promise<SubmissionRecord>>();
 const emailDeliveries = new Map<string, boolean>();
+
+/** Ordered so newest submission naturally lists first; callers still sort explicitly. */
+export async function getSubmissionsForOwner(ownerId: string): Promise<Array<SubmissionRecord & { id: string }>> {
+  return [...submissions.entries()]
+    .filter(([, record]) => record.ownerId === ownerId)
+    .map(([id, record]) => ({ id, ...record }));
+}
+
+export type DraftApplicationSummary = {
+  id: string;
+  jobTitle: string;
+  location?: string;
+  lastSavedAt: string;
+  percentComplete: number;
+};
+
+/**
+ * The one real, form-backed draft ("demo-application") only tracks a raw field bag, not a
+ * jobTitle/location/percent suited for a list card — job role is chosen mid-form and never
+ * step-saved on its own. Rather than fabricate that data, this reuses the same demo job
+ * identity already shown throughout the multi-step form UI (see ApplicationShell's default
+ * jobTitle/jobMeta) so the "in progress" card reflects the one real application consistently
+ * with the rest of the app, with a genuinely persisted last-saved timestamp.
+ */
+export async function getDraftSummariesForOwner(ownerId: string): Promise<DraftApplicationSummary[]> {
+  const summaries: DraftApplicationSummary[] = [];
+
+  const realDraftId = "demo-application";
+  if (!submissions.has(realDraftId) && applicationDrafts.has(realDraftId)) {
+    // This mock has a single global draft slot rather than one per candidate — treat whoever
+    // has saved into it as its owner, consistent with how submitApplication's ownerId works.
+    const lastSavedAt = draftLastSavedAt.get(realDraftId) ?? new Date().toISOString();
+    summaries.push({
+      id: realDraftId,
+      jobTitle: "Customer Experience Associate",
+      location: "London · Hybrid",
+      lastSavedAt,
+      percentComplete: Math.min(90, Object.keys(applicationDrafts.get(realDraftId) ?? {}).length * 15 + 15),
+    });
+  }
+
+  const illustrative = illustrativeDraftsByOwner.get(ownerId);
+  if (illustrative) summaries.push(illustrative);
+
+  return summaries;
+}
+
+const illustrativeDraftsByOwner = new Map<string, DraftApplicationSummary>();
+const seededIllustrativeOwners = new Set<string>();
+
+/**
+ * Adds one additional illustrative submitted application and one illustrative draft for a
+ * candidate who has already submitted their real demo application — purely so the "Your
+ * Applications" list has something genuine to show for the "multiple applications" case. These
+ * go through the exact same SubmissionRecord/tracking pipeline as a real submission (nothing in
+ * the UI layer is faked); only this seed step is synthetic, in the same spirit as the rest of
+ * this mock backend's single "demo-application". Runs at most once per candidate, and never for
+ * a candidate who hasn't submitted anything yet — a brand-new account still sees the real empty
+ * state first.
+ */
+export async function ensureIllustrativeApplicationsSeeded(ownerId: string): Promise<void> {
+  if (seededIllustrativeOwners.has(ownerId)) return;
+  if (!submissions.has("demo-application")) return;
+  seededIllustrativeOwners.add(ownerId);
+
+  const careAssistantId = `demo-application-care-assistant-${ownerId}`;
+  if (!submissions.has(careAssistantId)) {
+    const submittedAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    submissions.set(careAssistantId, {
+      reference: generateReference(),
+      submittedAt,
+      email: submissions.get("demo-application")?.email ?? "",
+      jobTitle: "Care Assistant",
+      location: "Manchester",
+      ownerId,
+      summary: submissions.get("demo-application")!.summary,
+    });
+    const { seedApplicationTrackingUpTo } = await import("./tracking.service");
+    await seedApplicationTrackingUpTo(careAssistantId, submissions.get(careAssistantId)!, "RECRUITMENT_ACCEPTED");
+  }
+
+  illustrativeDraftsByOwner.set(ownerId, {
+    id: `demo-application-senior-support-worker-${ownerId}`,
+    jobTitle: "Senior Support Worker",
+    location: "Birmingham",
+    lastSavedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    percentComplete: 75,
+  });
+}
 
 function generateReference(): string {
   const year = new Date().getFullYear();
