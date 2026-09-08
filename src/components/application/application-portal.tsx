@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { AlertCircle, ArrowLeft, ArrowRight, BriefcaseBusiness, CalendarIcon, CheckCircle2, ChevronDown, CircleUserRound, Download, FileText, GraduationCap, Info, Mail, MapPin, Paperclip, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Controller, FormProvider, useFieldArray, useForm, useFormContext, useWatch, type FieldErrors, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
 import { applicationSteps } from "@/constants/application-steps";
@@ -40,7 +41,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,7 +56,8 @@ import { StatusBadge } from "@/components/application/status-badge";
 import { ReviewActionsMenu } from "@/components/application/review-actions-menu";
 import { RecentActivity } from "@/components/application/recent-activity";
 import { CandidatePrivacyNotice } from "@/components/privacy/candidate-privacy-notice";
-import type { ApplicationStatus } from "@/types";
+import { accountDisplayName } from "@/types/account";
+import type { ApplicationStatus, PublicAccount } from "@/types";
 
 type Values = ApplicationFormValues;
 
@@ -258,15 +259,21 @@ function Dashboard({
   onContinue,
   status,
   submission,
+  account,
 }: {
   applicationId: string;
   onContinue: () => void;
   status: ApplicationStatus;
   submission?: SubmissionResult;
+  account?: PublicAccount;
 }) {
   const submitted = status === "submitted";
-  return <div className="min-h-screen bg-background"><header className="border-b bg-background"><div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5"><div className="flex items-center gap-2 font-serif text-2xl font-semibold"><span className="grid size-8 place-items-center rounded-full bg-primary font-sans text-xs text-primary-foreground">AI</span>AI Application Fast Specialist</div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost"><CircleUserRound />Alex Morgan<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>Profile settings</DropdownMenuItem><DropdownMenuItem>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-foreground">Good afternoon, Alex</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-foreground" /></div></CardHeader><CardContent><Separator />
+  const displayName = account ? accountDisplayName(account) : undefined;
+  const initials = displayName
+    ? displayName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
+    : undefined;
+  return <div className="min-h-screen bg-background">
+    <main className="mx-auto max-w-7xl px-5 py-10 sm:py-14"><p className="text-sm font-medium text-foreground">{displayName ? `Good afternoon, ${displayName}` : "Good afternoon"}</p><h1 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">Your applications</h1><div className="mt-9 grid gap-6 lg:grid-cols-[1.6fr_1fr]"><Card><CardHeader><div className="flex items-start justify-between gap-3"><div><StatusBadge status={status} /><CardTitle className="mt-3 font-serif text-2xl">{submission?.jobTitle || "Application"}</CardTitle><CardDescription className="mt-2 flex items-center gap-1"><MapPin className="size-3.5" />{submission?.location || "Location not specified"}</CardDescription></div><BriefcaseBusiness className="size-6 text-foreground" /></div></CardHeader><CardContent><Separator />
       {submitted && submission ? (
         <div className="mt-5 space-y-1 text-sm">
           <p className="flex items-center gap-1.5 font-medium text-foreground"><CheckCircle2 className="size-4" />Application submitted</p>
@@ -277,7 +284,7 @@ function Dashboard({
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-muted-foreground">Application progress</p><div className="mt-2 flex items-center gap-3"><Progress className="w-48" value={36} /><span className="text-sm font-semibold">5 of {applicationSteps.length} sections</span></div></div><p className="text-xs text-muted-foreground">Last saved today, 14:32</p></div>
       )}
       <div className="mt-6 flex flex-wrap gap-3">{submitted ? <><Button onClick={onContinue} variant="outline">View Application</Button><Button asChild variant="outline"><a download={submission ? pdfFilename(submission.reference) : undefined} href={`/applications/${applicationId}/pdf`}><Download />Download PDF</a></Button></> : <><Button onClick={onContinue}>Continue application <ArrowRight /></Button><Button onClick={onContinue} variant="outline">View application</Button></>}</div></CardContent></Card>
-      <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-secondary font-semibold text-secondary-foreground">AM</span><div><p className="text-sm font-semibold">Alex Morgan</p><p className="text-xs text-muted-foreground">alex.morgan@example.com</p></div></div><Separator /><p className="text-sm text-muted-foreground">Your profile is 80% complete.</p><Button className="w-full" variant="outline">Manage profile</Button></CardContent></Card></div>
+      <Card><CardHeader><CardTitle>Profile summary</CardTitle><CardDescription>Keep your details up to date to make applying faster.</CardDescription></CardHeader><CardContent className="space-y-4">{account ? <><div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-full bg-secondary font-semibold text-secondary-foreground">{initials}</span><div><p className="text-sm font-semibold">{displayName}</p><p className="text-xs text-muted-foreground">{account.email}</p></div></div><Separator /><Button asChild className="w-full" variant="outline"><Link href="/profile">Manage profile</Link></Button></> : <><p className="text-sm text-muted-foreground">Create an account to save your profile and speed up future applications.</p><Button asChild className="w-full" variant="outline"><Link href="/register">Create Account</Link></Button></>}</CardContent></Card></div>
       {submitted ? <RecentActivity applicationId={applicationId} /> : <section className="mt-10"><h2 className="font-serif text-2xl">Recent activity</h2><Card className="mt-4"><CardContent className="flex items-center gap-3 p-5"><CheckCircle2 className="size-5 text-foreground" /><div><p className="text-sm font-medium">Personal details saved</p><p className="text-xs text-muted-foreground">Today at 14:32</p></div></CardContent></Card></section>}</main></div>;
 }
 
@@ -285,10 +292,12 @@ export function ApplicationPortal({
   initialScreen = "dashboard",
   initialStep = 1,
   initialSubmission,
+  account,
 }: {
   initialScreen?: "dashboard" | "form";
   initialStep?: number;
   initialSubmission?: SubmissionResult;
+  account?: PublicAccount;
 }) {
   const [screen, setScreen] = useState<"dashboard" | "form">(initialScreen);
   const [current, setCurrent] = useState(initialStep);
@@ -373,6 +382,7 @@ export function ApplicationPortal({
   if (screen === "dashboard") {
     return (
       <Dashboard
+        account={account}
         applicationId={APPLICATION_ID}
         onContinue={() => { setScreen("form"); setCurrent(applicationSteps.length - 1); }}
         status={applicationStatus}

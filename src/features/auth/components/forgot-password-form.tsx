@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +13,7 @@ import { forgotPasswordSchema, type ForgotPasswordValues } from "@/features/auth
 import { forgotPasswordAction } from "@/features/auth/actions/forgot-password.actions";
 
 export function ForgotPasswordForm() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string>();
   const {
@@ -23,21 +26,32 @@ export function ForgotPasswordForm() {
     setFormError(undefined);
     startTransition(async () => {
       const result = await forgotPasswordAction(values);
-      if (!result.success) setFormError(result.message);
+      if (!result.success) {
+        setFormError(result.message);
+        return;
+      }
+      router.push("/reset-password/sent");
     });
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+    <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+      <p className="text-sm text-muted-foreground">
+        Enter the email address associated with your account. If we can process a password reset for that account,
+        we&apos;ll send instructions to the email address.
+      </p>
       <div className="space-y-2">
         <Label htmlFor="email">Email address</Label>
-        <Input id="email" type="email" {...register("email")} />
+        <Input autoComplete="email" id="email" type="email" {...register("email")} />
         <FormError message={errors.email?.message} />
       </div>
       <FormError message={formError} />
       <Button disabled={pending} type="submit">
-        Send reset link
+        {pending ? "Sending…" : "Send Reset Instructions"}
       </Button>
+      <Link className="text-center text-sm text-foreground underline" href="/login">
+        Back to Login
+      </Link>
     </form>
   );
 }

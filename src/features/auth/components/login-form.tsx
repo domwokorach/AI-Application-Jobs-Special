@@ -3,15 +3,20 @@
 import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/forms/password-input";
 import { FormError } from "@/components/forms/form-error";
 import { loginSchema, type LoginValues } from "@/features/auth/schemas/login.schema";
 import { loginAction } from "@/features/auth/actions/login.actions";
+import { safeRedirectTarget } from "@/lib/safe-redirect";
 
 export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string>();
   const {
@@ -24,29 +29,40 @@ export function LoginForm() {
     setFormError(undefined);
     startTransition(async () => {
       const result = await loginAction(values);
-      if (!result.success) setFormError(result.message);
+      if (!result.success) {
+        setFormError(result.message);
+        return;
+      }
+      router.push(safeRedirectTarget(searchParams.get("next"), "/"));
+      router.refresh();
     });
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)}>
+    <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="space-y-2">
         <Label htmlFor="email">Email address</Label>
-        <Input id="email" type="email" {...register("email")} />
+        <Input autoComplete="email" id="email" type="email" {...register("email")} />
         <FormError message={errors.email?.message} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" {...register("password")} />
+        <PasswordInput autoComplete="current-password" id="password" {...register("password")} />
         <FormError message={errors.password?.message} />
       </div>
+      <Link className="-mt-1 text-sm text-foreground underline" href="/forgot-password">
+        Forgot password?
+      </Link>
       <FormError message={formError} />
       <Button disabled={pending} type="submit">
-        Sign in
+        {pending ? "Signing in…" : "Sign In"}
       </Button>
-      <Link className="text-sm text-foreground underline" href="/forgot-password">
-        Forgot your password?
-      </Link>
+      <p className="text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link className="font-medium text-foreground underline" href="/register">
+          Create Account
+        </Link>
+      </p>
     </form>
   );
 }
