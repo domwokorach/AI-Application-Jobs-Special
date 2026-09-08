@@ -7,12 +7,12 @@ export type FileUploadOptions = {
   maxSizeBytes?: number;
 };
 
-const defaultAcceptedTypes = [
+export const defaultAcceptedTypes = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
-const defaultMaxSizeBytes = 10_000_000;
+export const defaultMaxSizeBytes = 10_000_000;
 
 export function useFileUpload({ acceptedTypes = defaultAcceptedTypes, maxSizeBytes = defaultMaxSizeBytes }: FileUploadOptions = {}) {
   const [file, setFile] = useState<File>();
