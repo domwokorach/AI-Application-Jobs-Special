@@ -58,7 +58,7 @@ type ApiFetchOptions = {
   skipAuthRetry?: boolean;
 };
 
-async function rawFetch<T>(path: string, options: ApiFetchOptions): Promise<Response> {
+async function rawFetch(path: string, options: ApiFetchOptions): Promise<Response> {
   return fetch(path, {
     method: options.method ?? "GET",
     headers: options.body !== undefined ? { "Content-Type": "application/json" } : undefined,
@@ -67,12 +67,12 @@ async function rawFetch<T>(path: string, options: ApiFetchOptions): Promise<Resp
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  let response = await rawFetch<T>(path, options);
+  let response = await rawFetch(path, options);
 
   if (response.status === 401 && !options.skipAuthRetry) {
     const refreshed = await attemptRefresh();
     if (!refreshed) throw new AuthExpiredError();
-    response = await rawFetch<T>(path, options);
+    response = await rawFetch(path, options);
     if (response.status === 401) throw new AuthExpiredError();
   }
 

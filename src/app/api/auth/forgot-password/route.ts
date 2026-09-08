@@ -6,7 +6,7 @@ import { recordAuditEvent } from "@/features/auth/services/audit.service";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentifier } from "@/lib/request-ip";
 import { getBaseUrl } from "@/lib/base-url";
-import { ok, fail, rateLimited, failFromError } from "@/lib/api/response";
+import { ok, fail, failFromError } from "@/lib/api/response";
 
 export async function POST(request: Request) {
   try {

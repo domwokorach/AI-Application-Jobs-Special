@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/auth/authorization";
 import { deleteAccount } from "@/features/auth/services/auth.service";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getRequestIdentifier } from "@/lib/request-ip";
 import { clearAuthCookies } from "@/lib/auth/cookies";
 import { isSameOriginRequest } from "@/lib/auth/same-origin";
 import { ok, fail, rateLimited, failFromError } from "@/lib/api/response";
