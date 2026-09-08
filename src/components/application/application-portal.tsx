@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { FormSection } from "@/components/forms/form-section";
 import { FormError } from "@/components/forms/form-error";
 import { StatusBadge } from "@/components/application/status-badge";
+import { ReviewActionsMenu } from "@/components/application/review-actions-menu";
 import { RecentActivity } from "@/components/application/recent-activity";
 import { CandidatePrivacyNotice } from "@/components/privacy/candidate-privacy-notice";
 import type { ApplicationStatus } from "@/types";
@@ -115,6 +116,44 @@ function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
   if (!local || !domain) return email;
   return `${local[0]}${"•".repeat(Math.max(local.length - 1, 4))}@${domain}`;
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] as string);
+}
+
+function buildDraftPreviewDocument(values: Values): string {
+  const row = (label: string, value?: string) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value) || "Not provided"}</td></tr>`;
+  const listRows = (label: string, items: string[]) => `<tr><th>${escapeHtml(label)}</th><td>${items.length ? items.map(escapeHtml).join("<br>") : "Not provided"}</td></tr>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Draft application preview</title><style>
+    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; color: #111; margin: 2.5rem; }
+    .banner { background: #fef3c7; border: 1px solid #d97706; color: #92400e; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.75rem 1rem; margin-bottom: 1.5rem; text-align: center; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1rem; margin-top: 2rem; margin-bottom: 0.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; width: 14rem; padding: 0.4rem 0.5rem 0.4rem 0; vertical-align: top; color: #555; font-weight: 600; }
+    td { padding: 0.4rem 0; vertical-align: top; }
+    .footer { margin-top: 2rem; font-size: 0.75rem; color: #666; }
+  </style></head><body>
+    <div class="banner">Draft application preview — not yet submitted</div>
+    <h1>${escapeHtml(values.role) || "Application"}</h1>
+    <p>${escapeHtml(values.location) || "Location not specified"}</p>
+    <h2>Personal details</h2>
+    <table>${row("Full name", values.fullName)}${row("Email", values.email)}${row("Mobile", values.mobile)}${row("Address", values.address)}${row("Postcode", values.postcode)}</table>
+    <h2>Job preferences</h2>
+    <table>${row("Role", values.role)}${row("Location", values.location)}${row("Preferred employer", values.preferredEmployer)}${row("Employment type", values.employmentType)}</table>
+    <h2>About you</h2>
+    <table>${row("Personal profile", values.personalProfile)}${row("Why this role", values.roleInterest)}</table>
+    <h2>Languages</h2>
+    <table>${listRows("Languages", values.languages.map((language) => `${language.name}${language.proficiency ? ` — ${formatLanguageProficiency(language.proficiency)}` : ""}`))}</table>
+    <h2>Work experience</h2>
+    <table>${listRows("Roles", values.work.filter((entry) => entry.title || entry.employer).map((entry) => `${entry.title || "Untitled role"} at ${entry.employer || "Unspecified employer"}`))}</table>
+    <h2>Education</h2>
+    <table>${listRows("Qualifications", values.education.filter((entry) => entry.institution || entry.qualification).map((entry) => `${entry.qualification || "Unspecified qualification"} — ${entry.institution || "Unspecified institution"}`))}</table>
+    <h2>References</h2>
+    <table>${listRows("References", values.references.filter((entry) => entry.name || entry.email).map((entry) => `${entry.name || "Unnamed reference"} — ${entry.email || "No email"}`))}</table>
+    <p class="footer">This is a preview of your in-progress draft application. It is not a submission receipt and carries no application reference number.</p>
+  </body></html>`;
 }
 
 function Field({ children, label, hint, error, required = false }: { children: React.ReactNode; label: string; hint?: string; error?: string; required?: boolean }) {
@@ -542,7 +581,7 @@ function LanguagesFields({ applicationId, disabled }: { applicationId: string; d
 function Adjustments({ form }: { form: ReturnType<typeof useForm<Values>> }) {
   const choice = useWatch({ control: form.control, name: "adjustments" });
   const options = ["Visual impairment support", "Deaf or hard-of-hearing support", "Mobility or physical accessibility", "Learning disability support", "Neurodivergence-related adjustment", "Communication support", "Accessible interview location", "Extra assessment time", "Other"];
-  return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-background p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
+  return <div className="space-y-6"><Alert className="border-border bg-muted"><Info /><AlertTitle>Confidential information</AlertTitle><AlertDescription>This information will be handled confidentially and, where practicable, separately from the information used to assess your application.</AlertDescription></Alert><Field label="Do you require any reasonable adjustments or additional support during the recruitment process?"><Controller control={form.control} name="adjustments" render={({ field }) => <RadioGroup onValueChange={field.onChange} value={field.value ?? ""}><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-yes" value="yes" /><Label htmlFor="adjustments-yes">Yes</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-no" value="no" /><Label htmlFor="adjustments-no">No</Label></div><div className="flex items-center gap-2"><RadioGroupItem id="adjustments-discuss" value="discuss" /><Label htmlFor="adjustments-discuss">Prefer to discuss</Label></div></RadioGroup>} /></Field>{choice === "yes" && <div className="space-y-5 rounded-lg border bg-background p-5"><p className="text-sm font-medium">Select any support that would be helpful.</p><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label className="flex min-h-7 items-center gap-2 text-sm" key={option}><Checkbox />{option}</label>)}</div><Field label="Please tell us what adjustment or support would help you"><Textarea {...form.register("adjustmentDetails")} placeholder="For example, extra time for an assessment or an accessible interview location." rows={5} /></Field></div>}</div>;
 }
 
 function Equality({ form }: { form: ReturnType<typeof useForm<Values>> }) {
@@ -632,7 +671,11 @@ function ReviewAndSubmit({
   const personalProfile = useWatch({ control: form.control, name: "personalProfile" });
   const roleInterest = useWatch({ control: form.control, name: "roleInterest" });
   const languages = useWatch({ control: form.control, name: "languages" });
+  const role = useWatch({ control: form.control, name: "role" });
   const isSubmitted = applicationStatus === "submitted";
+  const isSubmitting = applicationStatus === "submitting" || isPending;
+  const reviewContentRef = useRef<HTMLDivElement>(null);
+  const [isSavingExit, startSaveExit] = useTransition();
 
   const sections = [
     { label: "Personal details", step: 1 },
@@ -687,13 +730,116 @@ function ReviewAndSubmit({
     });
   }
 
+  function handleReviewAll() {
+    reviewContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    reviewContentRef.current?.focus();
+  }
+
+  function handleDownloadPreview() {
+    const preview = window.open("", "_blank", "noopener,noreferrer,width=840,height=1000");
+    if (!preview) {
+      toast.error("We couldn't open the preview. Please allow pop-ups and try again.");
+      return;
+    }
+    preview.document.write(buildDraftPreviewDocument(form.getValues()));
+    preview.document.close();
+    preview.focus();
+    preview.print();
+  }
+
+  function handleSaveAndExit() {
+    if (isSavingExit || isSubmitting) return;
+    const toastId = toast.loading("Saving…");
+    startSaveExit(async () => {
+      const result = await saveApplicationStepAction(applicationId, "review", {
+        declarationAccurate: form.getValues("declarationAccurate"),
+        declarationEditRestriction: form.getValues("declarationEditRestriction"),
+      });
+      if (!result.success) {
+        toast.error("We couldn't save your latest changes.", {
+          id: toastId,
+          action: { label: "Try Again", onClick: handleSaveAndExit },
+        });
+        return;
+      }
+      toast.success("✓ Saved", { id: toastId });
+      router.push("/dashboard");
+    });
+  }
+
+  function handleReturnDashboard() {
+    if (isSubmitted) {
+      router.push("/dashboard");
+      return;
+    }
+    if (form.formState.isDirty) {
+      handleSaveAndExit();
+      return;
+    }
+    router.push("/dashboard");
+  }
+
+  function handleViewSubmitted() {
+    router.push(`/applications/${applicationId}/submitted`);
+  }
+
+  function handleDownloadConfirmation() {
+    const link = document.createElement("a");
+    link.href = `/applications/${applicationId}/pdf`;
+    link.download = pdfFilename(submittedResult?.reference ?? applicationId);
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function handleTrackApplication() {
+    router.push(`/applications/${applicationId}/tracking`);
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="font-serif text-xl font-medium tracking-tight">{role || "Application"}</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Application status</span>
+            <StatusBadge status={applicationStatus} />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ReviewActionsMenu
+            applicationId={applicationId}
+            disabled={isSubmitting}
+            isSaving={isSavingExit}
+            isSubmitting={isSubmitting}
+            onDownloadConfirmation={isSubmitted ? handleDownloadConfirmation : undefined}
+            onDownloadPreview={isSubmitted ? undefined : handleDownloadPreview}
+            onReturnDashboard={handleReturnDashboard}
+            onReviewAll={isSubmitted ? undefined : handleReviewAll}
+            onSaveAndExit={isSubmitted ? undefined : handleSaveAndExit}
+            onTrackApplication={isSubmitted ? handleTrackApplication : undefined}
+            onViewSubmitted={isSubmitted ? handleViewSubmitted : undefined}
+            status={applicationStatus}
+          />
+          {!isSubmitted && (
+            <Button
+              className="w-full sm:w-auto"
+              disabled={!accurate || !editRestriction || isSubmitting}
+              onClick={handleSubmitClick}
+              type="button"
+            >
+              {isSubmitting ? "Submitting…" : "Submit Application"}
+            </Button>
+          )}
+        </div>
+      </div>
       <Alert>
         <Info />
         <AlertTitle>Almost ready to submit</AlertTitle>
         <AlertDescription>Complete your declaration below before submitting. Optional equality monitoring is not included in this review.</AlertDescription>
       </Alert>
+      <div className="space-y-4 outline-none" ref={reviewContentRef} tabIndex={-1}>
       <Card>
         <CardContent className="p-5">
           <div className="flex items-center justify-between gap-4">
@@ -734,6 +880,7 @@ function ReviewAndSubmit({
           </CardContent>
         </Card>
       ))}
+      </div>
 
       {isSubmitted ? (
         <Alert className="border-success/40 bg-success/10">
@@ -781,10 +928,6 @@ function ReviewAndSubmit({
               </Label>
             </div>
             <FormError message={errors.declarationEditRestriction?.message} />
-
-            <Button className="w-full sm:w-auto" disabled={!accurate || !editRestriction} onClick={handleSubmitClick} type="button">
-              Submit Application
-            </Button>
           </CardContent>
         </Card>
       )}
