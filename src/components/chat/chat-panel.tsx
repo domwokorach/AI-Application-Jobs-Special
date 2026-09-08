@@ -23,10 +23,12 @@ export function ChatPanel({
   chat,
   onMinimise,
   onClose,
+  isApplicationFlow,
 }: {
   chat: ReturnType<typeof useChatSocket>;
   onMinimise: () => void;
   onClose: () => void;
+  isApplicationFlow: boolean;
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,7 @@ export function ChatPanel({
     <div
       aria-labelledby={titleId}
       aria-modal="false"
-      className="fixed inset-x-3 bottom-3 top-[calc(1rem+env(safe-area-inset-top))] z-50 flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg outline-none sm:inset-x-auto sm:top-auto sm:right-6 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] sm:h-[min(600px,calc(100dvh-3rem))] sm:w-[min(390px,calc(100vw-3rem))]"
+      className={`fixed inset-x-3 top-[calc(1rem+env(safe-area-inset-top))] z-50 flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg outline-none sm:inset-x-auto sm:top-auto sm:right-6 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] sm:h-[min(600px,calc(100dvh-3rem))] sm:w-[min(390px,calc(100vw-3rem))] ${isApplicationFlow ? "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]" : "bottom-3"}`}
       ref={panelRef}
       role="dialog"
       tabIndex={-1}

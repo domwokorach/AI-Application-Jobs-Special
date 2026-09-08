@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Controller, FormProvider, useFieldArray, useForm, useFormContext, useWatch, type FieldErrors, type Path } from "react-hook-form";
 import { ApplicationShell } from "./application-shell";
+import { PreviousNextNavigation } from "./previous-next-navigation";
 import { applicationSteps } from "@/constants/application-steps";
 import { applicationSchema, type ApplicationFormValues } from "@/features/applications/schemas/application.schema";
 import { defaultAboutYouFieldConfiguration, PERSONAL_PROFILE_MAX_LENGTH, ROLE_INTEREST_MAX_LENGTH } from "@/features/applications/schemas/about-you.schema";
@@ -54,6 +55,8 @@ import { FormSection } from "@/components/forms/form-section";
 import { FormError } from "@/components/forms/form-error";
 import { StatusBadge } from "@/components/application/status-badge";
 import { ReviewActionsMenu } from "@/components/application/review-actions-menu";
+import { ReviewSection } from "@/components/application/review-section";
+import { SaveStatus } from "@/components/application/save-status";
 import { RecentActivity } from "@/components/application/recent-activity";
 import { CandidatePrivacyNotice } from "@/components/privacy/candidate-privacy-notice";
 import { accountDisplayName } from "@/types/account";
@@ -159,7 +162,7 @@ function buildDraftPreviewDocument(values: Values): string {
 
 function Field({ children, label, hint, error, required = false }: { children: React.ReactNode; label: string; hint?: string; error?: string; required?: boolean }) {
   const id = label.toLowerCase().replaceAll(/[^a-z0-9]/g, "-");
-  return <div className={`space-y-2 ${error ? "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=button]]:border-destructive [&_[data-slot=select-trigger]]:border-destructive" : ""}`}><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}{error && <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-destructive" role="alert"><AlertCircle className="size-3.5" />{error}</p>}</div>;
+  return <div className={`min-w-0 space-y-2 ${error ? "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=button]]:border-destructive [&_[data-slot=select-trigger]]:border-destructive" : ""}`}><Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>{children}{hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}<div className="min-h-5">{error && <FormError id={`${id}-error`} message={error} />}</div></div>;
 }
 
 function DatePickerField({ label }: { label: string }) {
@@ -189,10 +192,10 @@ function SearchableSelect({
       <PopoverTrigger asChild>
         <Button aria-expanded={open} aria-haspopup="listbox" aria-label={ariaLabel} className="w-full justify-between font-normal" type="button" variant="outline">
           <span className="truncate">{value || placeholder}</span>
-          <ChevronDown />
+          <ChevronDown className="size-4 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(22rem,calc(100vw-2rem))] p-2">
+      <PopoverContent align="start" className="w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] p-2">
         <Input aria-label={`Search ${ariaLabel.toLowerCase()}`} autoFocus onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${ariaLabel.toLowerCase()}`} value={query} />
         <div className="mt-2 max-h-56 overflow-y-auto" role="listbox">
           {filteredOptions.length > 0 ? filteredOptions.map((option) => (
@@ -227,7 +230,7 @@ function FileUpload() {
     if (!["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(next.type) || next.size > 10_000_000) { toast.error("Choose a PDF, DOC or DOCX file up to 10MB."); return; }
     setFile(next); setProgress(100); toast.success("CV uploaded successfully");
   }
-  return <Card className="border-dashed"><CardContent className="p-6">
+  return <Card className="min-h-64 border-dashed"><CardContent className="flex flex-1 items-center p-6">
     {file ? <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="grid size-11 place-items-center rounded-md bg-secondary text-secondary-foreground"><FileText className="size-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{file.name}</p><p className="text-xs text-muted-foreground">{Math.ceil(file.size / 1024)} KB · Upload complete</p><Progress className="mt-2 h-1.5" value={progress} /></div><div className="flex gap-2"><Button onClick={() => input.current?.click()} size="sm" variant="outline">Replace</Button><Button onClick={() => { setFile(undefined); setProgress(0); }} size="icon-sm" variant="ghost" aria-label="Remove uploaded CV"><Trash2 /></Button></div></div> : <div className="grid justify-items-center py-7 text-center" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseFile(event.dataTransfer.files[0]); }}><span className="mb-3 grid size-11 place-items-center rounded-full bg-secondary text-secondary-foreground"><UploadCloud className="size-5" /></span><h2 className="text-sm font-semibold">Drag and drop your CV here</h2><p className="mt-1 text-xs text-muted-foreground">PDF, DOC or DOCX · Maximum file size 10MB</p><Button className="mt-4" onClick={() => input.current?.click()} type="button" variant="outline"><Paperclip />Browse files</Button></div>}
     <input className="sr-only" accept=".pdf,.doc,.docx" onChange={(event) => chooseFile(event.target.files?.[0])} ref={input} type="file" />
   </CardContent></Card>;
@@ -403,7 +406,7 @@ export function ApplicationPortal({
   return (
     <FormProvider {...form}>
       <ApplicationShell current={current} onSelect={setCurrent} steps={applicationSteps}>
-        <main className="mx-auto max-w-3xl px-5 pb-28 pt-10 sm:px-8 sm:pt-16">
+        <main className="mx-auto w-full min-w-0 max-w-(--container-form) px-5 pb-28 pt-10 sm:px-8 sm:pt-16">
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-foreground">Step {current + 1} of {applicationSteps.length}</p>
         <FormSection title={step.label} optional={step.optional} description={descriptionFor(step.id)}>
           <StepContents
@@ -417,10 +420,13 @@ export function ApplicationPortal({
             onStatusChange={setApplicationStatus}
             onSubmitted={setSubmission}
           />
-          <nav className="fixed inset-x-0 bottom-0 z-10 flex min-h-18 items-center justify-between border-t bg-background/95 px-5 py-3 backdrop-blur md:static md:mt-10 md:border-b md:bg-transparent md:px-0">
-            <Button disabled={current === 0} onClick={() => setCurrent((value) => value - 1)} variant="ghost"><ArrowLeft />Previous</Button>
-            {!isLastStep && <Button onClick={next}>Save and continue<ArrowRight /></Button>}
-          </nav>
+          <PreviousNextNavigation
+            isFirstStep={current === 0}
+            isLastStep={isLastStep}
+            onNext={next}
+            onPrevious={() => setCurrent((value) => value - 1)}
+            showNext={!isLastStep}
+          />
         </FormSection>
         </main>
       </ApplicationShell>
@@ -507,14 +513,6 @@ function AboutYouFields({ applicationId, disabled }: { applicationId: string; di
     800,
     !disabled,
   );
-  const statusMessage = autosaveStatus === "saving"
-    ? "Saving…"
-    : autosaveStatus === "saved"
-      ? "✓ Saved"
-      : autosaveStatus === "error"
-        ? "Unable to save"
-        : "";
-
   return (
     <div className="space-y-6">
       <CharacterLimitTextarea
@@ -535,13 +533,7 @@ function AboutYouFields({ applicationId, disabled }: { applicationId: string; di
         required={defaultAboutYouFieldConfiguration.roleInterest.required}
         rows={10}
       />
-      <div aria-live="polite" className="min-h-5 text-sm">
-        {statusMessage && (
-          <p className={autosaveStatus === "error" ? "font-medium text-destructive" : "text-muted-foreground"}>
-            {statusMessage}
-          </p>
-        )}
-      </div>
+      <SaveStatus className="min-h-5" status={autosaveStatus} />
     </div>
   );
 }
@@ -558,14 +550,6 @@ function LanguagesFields({ applicationId, disabled }: { applicationId: string; d
     800,
     !disabled,
   );
-  const statusMessage = autosaveStatus === "saving"
-    ? "Saving…"
-    : autosaveStatus === "saved"
-      ? "✓ Saved"
-      : autosaveStatus === "error"
-        ? "Unable to save"
-        : "";
-
   return (
     <div className="space-y-4">
       <Controller
@@ -581,9 +565,7 @@ function LanguagesFields({ applicationId, disabled }: { applicationId: string; d
           />
         )}
       />
-      <div aria-live="polite" className="min-h-5 text-sm">
-        {statusMessage && <p className={autosaveStatus === "error" ? "font-medium text-destructive" : "text-muted-foreground"}>{statusMessage}</p>}
-      </div>
+      <SaveStatus className="min-h-5" status={autosaveStatus} />
     </div>
   );
 }
@@ -833,8 +815,11 @@ function ReviewAndSubmit({
             status={applicationStatus}
           />
           {!isSubmitted && (
+            // Fixed width (not w-auto) so the button doesn't shrink when its label switches to
+            // the shorter "Submitting…" — that shrink would nudge the "More actions" trigger
+            // beside it since this row doesn't otherwise reserve a slot for each button.
             <Button
-              className="w-full sm:w-auto"
+              className="w-full min-w-44 sm:w-56"
               disabled={!accurate || !editRestriction || isSubmitting}
               onClick={handleSubmitClick}
               type="button"
@@ -852,8 +837,8 @@ function ReviewAndSubmit({
       <div className="space-y-4 outline-none" ref={reviewContentRef} tabIndex={-1}>
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between gap-4">
-            <p className="font-medium">About you</p>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+            <p className="min-w-0 font-medium">About you</p>
             <Button disabled={isSubmitted} onClick={() => onEdit(3)} variant="outline">Edit</Button>
           </div>
           <dl className="mt-5 space-y-5">
@@ -864,8 +849,8 @@ function ReviewAndSubmit({
       </Card>
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between gap-4">
-            <p className="font-medium">Languages</p>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+            <p className="min-w-0 font-medium">Languages</p>
             <Button disabled={isSubmitted} onClick={() => onEdit(7)} variant="outline">Edit</Button>
           </div>
           {languages.length === 0 ? (
@@ -878,17 +863,12 @@ function ReviewAndSubmit({
         </CardContent>
       </Card>
       {sections.map((section) => (
-        <Card key={section.label}>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="font-medium">{section.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Information saved</p>
-            </div>
-            <Button disabled={isSubmitted} onClick={() => onEdit(section.step)} variant="outline">
-              Edit
-            </Button>
-          </CardContent>
-        </Card>
+        <ReviewSection
+          disabled={isSubmitted}
+          key={section.label}
+          label={section.label}
+          onEdit={() => onEdit(section.step)}
+        />
       ))}
       </div>
 
@@ -920,7 +900,9 @@ function ReviewAndSubmit({
                 I confirm that the information provided in this application is complete and accurate.
               </Label>
             </div>
-            <FormError message={errors.declarationAccurate?.message} />
+            <div className="min-h-5">
+              <FormError message={errors.declarationAccurate?.message} />
+            </div>
             <div className="flex gap-3">
               <Controller
                 control={form.control}
@@ -937,7 +919,9 @@ function ReviewAndSubmit({
                 I understand that after submitting my application, I may not be able to edit some information.
               </Label>
             </div>
-            <FormError message={errors.declarationEditRestriction?.message} />
+            <div className="min-h-5">
+              <FormError message={errors.declarationEditRestriction?.message} />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -985,12 +969,13 @@ function ReviewAndSubmit({
                   before submitting. After submission, you may not be able to make changes.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              {isPending && (
-                <div aria-live="polite" className="rounded-md bg-muted px-4 py-3 text-sm">
-                  <p className="font-medium">Submitting application…</p>
-                  <p className="mt-1 text-muted-foreground">Please do not close this page.</p>
-                </div>
-              )}
+              {/* Always mounted (visibility toggled, not the element itself) so the dialog — which
+                  is centered by a transform, not anchored to its top — doesn't grow and re-center
+                  itself the moment submission starts. */}
+              <div aria-live={isPending ? "polite" : "off"} className={`rounded-md bg-muted px-4 py-3 text-sm ${isPending ? "" : "invisible"}`}>
+                <p aria-hidden={!isPending} className="font-medium">Submitting application…</p>
+                <p aria-hidden={!isPending} className="mt-1 text-muted-foreground">Please do not close this page.</p>
+              </div>
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={isPending}>Go Back</AlertDialogCancel>
                 <AlertDialogAction

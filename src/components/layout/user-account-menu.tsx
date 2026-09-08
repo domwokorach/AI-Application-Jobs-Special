@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { logoutAction } from "@/features/auth/actions/logout.actions";
+import { authApi } from "@/lib/api/auth-client";
 import { flushPendingSaves } from "@/hooks/use-pending-save-registry";
 import { accountDisplayName } from "@/types/account";
 import type { PublicAccount } from "@/types";
@@ -42,7 +42,7 @@ export function UserAccountMenu({ account }: { account?: PublicAccount }) {
       if (!savedCleanly) {
         toast.warning("Some changes may not have saved before signing out.");
       }
-      await logoutAction();
+      await authApi.logout().catch(() => undefined);
       router.push("/login");
       router.refresh();
     });

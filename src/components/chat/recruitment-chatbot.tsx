@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ChatLauncher } from "@/components/chat/chat-launcher";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { useChatSocket } from "@/hooks/use-chat-socket";
@@ -13,6 +14,7 @@ import type { ChatWindowState } from "@/lib/socket/types";
  * component does (see useChatSocket's session-only history note).
  */
 export function RecruitmentChatbot() {
+  const pathname = usePathname();
   const [windowState, setWindowState] = useState<ChatWindowState>("CLOSED");
   const [unreadCount, setUnreadCount] = useState(0);
   const launcherRef = useRef<HTMLButtonElement>(null);
@@ -58,8 +60,8 @@ export function RecruitmentChatbot() {
   };
 
   if (windowState === "OPEN") {
-    return <ChatPanel chat={chat} onClose={close} onMinimise={minimise} />;
+    return <ChatPanel chat={chat} isApplicationFlow={pathname.startsWith("/applications/")} onClose={close} onMinimise={minimise} />;
   }
 
-  return <ChatLauncher onOpen={open} ref={launcherRef} unreadCount={unreadCount} />;
+  return <ChatLauncher isApplicationFlow={pathname.startsWith("/applications/")} onOpen={open} ref={launcherRef} unreadCount={unreadCount} />;
 }

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormError } from "@/components/forms/form-error";
 import { forgotPasswordSchema, type ForgotPasswordValues } from "@/features/auth/schemas/forgot-password.schema";
-import { forgotPasswordAction } from "@/features/auth/actions/forgot-password.actions";
+import { authApi, ApiError } from "@/lib/api/auth-client";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -25,9 +25,10 @@ export function ForgotPasswordForm() {
   function onSubmit(values: ForgotPasswordValues) {
     setFormError(undefined);
     startTransition(async () => {
-      const result = await forgotPasswordAction(values);
-      if (!result.success) {
-        setFormError(result.message);
+      try {
+        await authApi.forgotPassword(values);
+      } catch (error) {
+        setFormError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
         return;
       }
       router.push("/reset-password/sent");

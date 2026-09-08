@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/forms/password-input";
 import { FormError } from "@/components/forms/form-error";
 import { changePasswordSchema, type ChangePasswordValues } from "@/features/profile/schemas/change-password.schema";
-import { changePasswordAction } from "@/features/profile/actions/change-password.actions";
+import { authApi, ApiError } from "@/lib/api/auth-client";
 import { passwordRequirements } from "@/features/auth/schemas/password-policy";
 import { toast } from "sonner";
 
@@ -25,9 +25,10 @@ export function ChangePasswordForm() {
   function onSubmit(values: ChangePasswordValues) {
     setFormError(undefined);
     startTransition(async () => {
-      const result = await changePasswordAction(values);
-      if (!result.success) {
-        setFormError(result.message);
+      try {
+        await authApi.changePassword(values);
+      } catch (error) {
+        setFormError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
         return;
       }
       reset();

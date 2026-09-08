@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/forms/password-input";
 import { FormError } from "@/components/forms/form-error";
 import { loginSchema, type LoginValues } from "@/features/auth/schemas/login.schema";
-import { loginAction } from "@/features/auth/actions/login.actions";
+import { authApi, ApiError } from "@/lib/api/auth-client";
 import { safeRedirectTarget } from "@/lib/safe-redirect";
 
 export function LoginForm() {
@@ -28,9 +28,10 @@ export function LoginForm() {
   function onSubmit(values: LoginValues) {
     setFormError(undefined);
     startTransition(async () => {
-      const result = await loginAction(values);
-      if (!result.success) {
-        setFormError(result.message);
+      try {
+        await authApi.login(values);
+      } catch (error) {
+        setFormError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
         return;
       }
       router.push(safeRedirectTarget(searchParams.get("next"), "/"));

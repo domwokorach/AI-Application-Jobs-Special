@@ -18,7 +18,7 @@ export function MobileApplicationNav({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-3 ${className ?? ""}`}>
+    <div className={`flex min-w-0 items-center gap-3 ${className ?? ""}`}>
       <Sheet>
         <SheetTrigger asChild>
           <Button aria-label="Open application navigation" size="icon" variant="ghost">
@@ -39,7 +39,7 @@ export function MobileApplicationNav({
           </nav>
         </SheetContent>
       </Sheet>
-      <span className="font-serif text-lg font-semibold">AI Application Fast Specialist</span>
+      <span className="min-w-0 truncate font-serif text-lg font-semibold">AI Application Fast Specialist</span>
     </div>
   );
 }

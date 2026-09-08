@@ -8,5 +8,11 @@ export const authConfig = {
   requireEmailVerification: false,
   emailVerificationTokenTtlHours: 24,
   passwordResetTokenTtlMinutes: 60,
+  /** Kept for reference/back-compat with the previous single-cookie session model; refresh
+   * sessions now use `refreshTokenTtlDays` below. */
   sessionTtlDays: 30,
+
+  /** Every JWT/session expiration lives here — never inline a TTL number elsewhere. */
+  accessTokenTtlMinutes: 15,
+  refreshTokenTtlDays: 30,
 } as const;

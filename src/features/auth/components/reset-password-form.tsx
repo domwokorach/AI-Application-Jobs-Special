@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/forms/password-input";
 import { FormError } from "@/components/forms/form-error";
 import { resetPasswordSchema, type ResetPasswordValues } from "@/features/auth/schemas/reset-password.schema";
-import { resetPasswordAction } from "@/features/auth/actions/reset-password.actions";
+import { authApi, ApiError } from "@/lib/api/auth-client";
 import { passwordRequirements } from "@/features/auth/schemas/password-policy";
 
 export function ResetPasswordForm({ token }: { token: string }) {
@@ -25,9 +25,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
   function onSubmit(values: ResetPasswordValues) {
     setFormError(undefined);
     startTransition(async () => {
-      const result = await resetPasswordAction(values);
-      if (!result.success) {
-        setFormError(result.message);
+      try {
+        await authApi.resetPassword(values);
+      } catch (error) {
+        setFormError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
         return;
       }
       router.push("/reset-password/success");

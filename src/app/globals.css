@@ -9,13 +9,12 @@
     min-height: 100%;
     background: var(--background);
     color: var(--foreground);
+    scrollbar-gutter: stable;
   }
 
   html,
   body {
     min-height: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
   }
 
   body {

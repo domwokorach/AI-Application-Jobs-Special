@@ -6,15 +6,17 @@ export function FormSection({
   description,
   children,
   optional = false,
+  className,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
   optional?: boolean;
+  className?: string;
 }) {
   const headingId = `${title.toLowerCase().replaceAll(/[^a-z0-9]/g, "-")}-section-title`;
   return (
-    <section aria-labelledby={headingId} className="space-y-section">
+    <section aria-labelledby={headingId} className={`min-w-0 space-y-section rounded-xl border bg-card p-5 shadow-sm sm:p-6 ${className ?? ""}`}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl" id={headingId}>{title}</h1>
@@ -23,7 +25,7 @@ export function FormSection({
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{description}</p>
       </div>
       <Separator />
-      <div className="space-y-form">{children}</div>
+      <div className="min-w-0 space-y-form">{children}</div>
     </section>
   );
 }

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PasswordInput } from "@/components/forms/password-input";
 import { FormError } from "@/components/forms/form-error";
 import { registerSchema, type RegisterValues } from "@/features/auth/schemas/register.schema";
-import { registerAction } from "@/features/auth/actions/register.actions";
+import { authApi, ApiError } from "@/lib/api/auth-client";
 import { passwordRequirements } from "@/features/auth/schemas/password-policy";
 import { countryOptions } from "@/constants/countries";
 import { toast } from "sonner";
@@ -66,9 +66,11 @@ export function RegisterForm() {
   function onSubmit(values: RegisterValues) {
     setFormError(undefined);
     startTransition(async () => {
-      const result = await registerAction(values);
-      if (!result.success) {
-        setFormError(result.message);
+      let result: { emailVerificationRequired: boolean };
+      try {
+        result = await authApi.register(values);
+      } catch (error) {
+        setFormError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
         return;
       }
       toast.success(result.emailVerificationRequired ? "Account created — check your email to verify it" : "Account created");

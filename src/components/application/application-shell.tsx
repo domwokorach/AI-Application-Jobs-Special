@@ -24,7 +24,7 @@ export function ApplicationShell({
   jobMeta?: string;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-dvh min-w-0 bg-background text-foreground">
       <ApplicationSidebar
         className="fixed inset-y-0 hidden xl:flex"
         current={current}
@@ -34,8 +34,8 @@ export function ApplicationShell({
         steps={steps}
       />
 
-      <div className="bg-background xl:pl-(--sidebar-width)">
-        <header className="sticky top-0 z-20 flex h-(--header-height) items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-8">
+      <div className="min-w-0 flex-1 bg-background xl:pl-(--sidebar-width)">
+        <header className="sticky top-0 z-20 flex min-w-0 h-(--header-height) items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:px-8">
           <MobileApplicationNav className="xl:hidden" current={current} onSelect={onSelect} steps={steps} />
           <SaveStatus className="hidden md:flex" />
           <Tooltip>

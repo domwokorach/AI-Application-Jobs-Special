@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { Button } from "@/components/ui/button";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
-import { checkResetTokenAction } from "@/features/auth/actions/reset-password.actions";
+import { validatePasswordResetToken } from "@/features/auth/services/tokens.service";
 
 export default async function ResetPasswordPage({ searchParams }: PageProps<"/reset-password">) {
   const params = await searchParams;
@@ -11,9 +11,9 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/re
 
   // A non-consuming pre-check so an expired/used link shows the correct state immediately,
   // without ever burning the token itself — actual submission re-validates (and consumes) it
-  // server-side in resetPasswordAction, since the presence of a token in the URL is never
-  // treated as proof of authorization on its own.
-  const validation = token ? await checkResetTokenAction(token) : { valid: false as const, reason: "not-found" as const };
+  // server-side in POST /api/auth/reset-password, since the presence of a token in the URL is
+  // never treated as proof of authorization on its own.
+  const validation = token ? validatePasswordResetToken(token) : { valid: false as const, reason: "not-found" as const };
 
   if (!validation.valid) {
     return (
